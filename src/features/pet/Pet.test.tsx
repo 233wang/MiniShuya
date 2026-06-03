@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Pet } from "./Pet";
 
@@ -103,5 +103,32 @@ describe("Pet", () => {
     fireEvent.pointerDown(screen.getByTestId("pet-face"));
 
     expect(pet).toHaveClass("pet--petting");
+  });
+
+  it("enters sleepy state after a quiet period", () => {
+    vi.useFakeTimers();
+    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+
+    const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
+    act(() => {
+      vi.advanceTimersByTime(30_000);
+    });
+
+    expect(pet).toHaveClass("pet--sleepy");
+    vi.useRealTimers();
+  });
+
+  it("wakes from sleepy state on pointer interaction", () => {
+    vi.useFakeTimers();
+    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+
+    const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
+    act(() => {
+      vi.advanceTimersByTime(30_000);
+    });
+    fireEvent.pointerEnter(pet);
+
+    expect(pet).toHaveClass("pet--hover");
+    vi.useRealTimers();
   });
 });

@@ -1,4 +1,4 @@
-import { useState, type PointerEvent } from "react";
+import { useEffect, useState, type PointerEvent } from "react";
 import {
   initialPetActionState,
   petActionClass,
@@ -12,13 +12,29 @@ type PetProps = {
   onExit: () => void;
 };
 
+export const SLEEPY_AFTER_MS = 30_000;
+
 export function Pet({ onDragStart, onDragEnd, onExit }: PetProps) {
   const [actionState, setActionState] = useState(initialPetActionState);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const dispatchAction = (event: PetActionEvent) => {
-    setActionState((current) => transitionPetActionState(current, event));
+    setActionState((current) => {
+      const awakened =
+        current === "sleepy" && event.type !== "IDLE_TIMEOUT"
+          ? transitionPetActionState(current, { type: "WAKE" })
+          : current;
+      return transitionPetActionState(awakened, event);
+    });
   };
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      dispatchAction({ type: "IDLE_TIMEOUT" });
+    }, SLEEPY_AFTER_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, [actionState]);
 
   const closeMenu = () => {
     setIsMenuOpen(false);
