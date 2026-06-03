@@ -77,4 +77,31 @@ describe("Pet", () => {
 
     expect(screen.queryByRole("menu", { name: "MiniShuya menu" })).not.toBeInTheDocument();
   });
+
+  it("enters hover state when the pointer enters", () => {
+    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+
+    const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
+    fireEvent.pointerEnter(pet);
+
+    expect(pet).toHaveClass("pet--hover");
+  });
+
+  it("uses menu-open state while the exit menu is visible", () => {
+    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+
+    const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
+    fireEvent.contextMenu(pet);
+
+    expect(pet).toHaveClass("pet--menu-open");
+  });
+
+  it("enters petting state from the face hit area", () => {
+    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+
+    const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
+    fireEvent.pointerDown(screen.getByTestId("pet-face"));
+
+    expect(pet).toHaveClass("pet--petting");
+  });
 });

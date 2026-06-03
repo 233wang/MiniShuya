@@ -1,6 +1,10 @@
-import { useState } from "react";
-
-type PetMood = "idle" | "dragging";
+import { useState, type PointerEvent } from "react";
+import {
+  initialPetActionState,
+  petActionClass,
+  transitionPetActionState,
+  type PetActionEvent,
+} from "./petActionState";
 
 type PetProps = {
   onDragStart: () => void;
@@ -9,38 +13,69 @@ type PetProps = {
 };
 
 export function Pet({ onDragStart, onDragEnd, onExit }: PetProps) {
-  const [mood, setMood] = useState<PetMood>("idle");
+  const [actionState, setActionState] = useState(initialPetActionState);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  const dispatchAction = (event: PetActionEvent) => {
+    setActionState((current) => transitionPetActionState(current, event));
+  };
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+    dispatchAction({ type: "CONTEXT_MENU_CLOSE" });
+  };
+
   const stopDragging = () => {
-    setMood("idle");
+    dispatchAction({ type: "DRAG_END" });
     onDragEnd();
   };
 
   const startDragging = () => {
     setIsMenuOpen(false);
-    setMood("dragging");
+    dispatchAction({ type: "DRAG_START" });
     onDragStart();
+  };
+
+  const startPetting = (event: PointerEvent) => {
+    event.stopPropagation();
+    setIsMenuOpen(false);
+    dispatchAction({ type: "PETTING_START" });
+  };
+
+  const handlePointerLeave = () => {
+    if (actionState === "dragging") {
+      stopDragging();
+      return;
+    }
+
+    if (actionState === "petting") {
+      dispatchAction({ type: "PETTING_END" });
+      return;
+    }
+
+    dispatchAction({ type: "POINTER_LEAVE" });
   };
 
   return (
     <button
       type="button"
-      className={`pet pet--${mood}`}
+      className={`pet ${petActionClass(actionState)}`}
       aria-label="MiniShuya desktop pet"
+      onPointerEnter={() => dispatchAction({ type: "POINTER_ENTER" })}
+      onPointerLeave={handlePointerLeave}
       onContextMenu={(event) => {
         event.preventDefault();
         setIsMenuOpen(true);
+        dispatchAction({ type: "CONTEXT_MENU_OPEN" });
       }}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
-          setIsMenuOpen(false);
+          closeMenu();
         }
       }}
       onPointerDown={startDragging}
       onPointerUp={stopDragging}
       onPointerCancel={stopDragging}
-      onPointerLeave={stopDragging}
     >
       <span className="pet__shadow" />
       <span className="pet__body" data-testid="pet-body">
@@ -49,7 +84,7 @@ export function Pet({ onDragStart, onDragEnd, onExit }: PetProps) {
         <span className="pet__arm pet__arm--left" />
         <span className="pet__arm pet__arm--right" />
       </span>
-      <span className="pet__head" data-testid="pet-face">
+      <span className="pet__head" data-testid="pet-face" onPointerDown={startPetting}>
         <span className="pet__hair pet__hair--back" />
         <span className="pet__bangs" />
         <span className="pet__eye pet__eye--left" />
