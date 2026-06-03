@@ -5,14 +5,22 @@ type PetMood = "idle" | "dragging";
 type PetProps = {
   onDragStart: () => void;
   onDragEnd: () => void;
+  onExit: () => void;
 };
 
-export function Pet({ onDragStart, onDragEnd }: PetProps) {
+export function Pet({ onDragStart, onDragEnd, onExit }: PetProps) {
   const [mood, setMood] = useState<PetMood>("idle");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const stopDragging = () => {
     setMood("idle");
     onDragEnd();
+  };
+
+  const startDragging = () => {
+    setIsMenuOpen(false);
+    setMood("dragging");
+    onDragStart();
   };
 
   return (
@@ -20,10 +28,16 @@ export function Pet({ onDragStart, onDragEnd }: PetProps) {
       type="button"
       className={`pet pet--${mood}`}
       aria-label="MiniShuya desktop pet"
-      onPointerDown={() => {
-        setMood("dragging");
-        onDragStart();
+      onContextMenu={(event) => {
+        event.preventDefault();
+        setIsMenuOpen(true);
       }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          setIsMenuOpen(false);
+        }
+      }}
+      onPointerDown={startDragging}
       onPointerUp={stopDragging}
       onPointerCancel={stopDragging}
       onPointerLeave={stopDragging}
@@ -46,6 +60,35 @@ export function Pet({ onDragStart, onDragEnd }: PetProps) {
       </span>
       <span className="pet__leg pet__leg--left" />
       <span className="pet__leg pet__leg--right" />
+      {isMenuOpen ? (
+        <span
+          className="pet-menu"
+          role="menu"
+          aria-label="MiniShuya menu"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <span className="pet-menu__sparkle" aria-hidden="true" />
+          <span className="pet-menu__title">MiniShuya</span>
+          <span
+            className="pet-menu__item"
+            role="menuitem"
+            tabIndex={0}
+            onClick={(event) => {
+              event.stopPropagation();
+              onExit();
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onExit();
+              }
+            }}
+          >
+            退出
+          </span>
+        </span>
+      ) : null}
     </button>
   );
 }

@@ -10,9 +10,13 @@ export function App() {
     void invoke("save_current_position");
   };
 
+  const handleExit = () => {
+    void invoke("exit_app");
+  };
+
   return (
     <main className="app-shell">
-      <Pet onDragStart={handleDragStart} onDragEnd={handleDragEnd} />
+      <Pet onDragStart={handleDragStart} onDragEnd={handleDragEnd} onExit={handleExit} />
     </main>
   );
 }

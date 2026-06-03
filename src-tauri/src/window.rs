@@ -68,6 +68,13 @@ pub fn save_current_position(app: AppHandle) -> Result<(), String> {
     save_current_window_position(&app)
 }
 
+#[tauri::command]
+pub fn exit_app(app: AppHandle) -> Result<(), String> {
+    save_current_window_position(&app)?;
+    app.exit(0);
+    Ok(())
+}
+
 pub fn apply_saved_position(app: &AppHandle) -> Result<(), String> {
     let Some(window) = app.get_webview_window("main") else {
         return Ok(());

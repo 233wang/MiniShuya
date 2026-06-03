@@ -11,6 +11,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
+            window::exit_app,
             window::load_window_position,
             window::save_current_position,
             window::save_window_position,
