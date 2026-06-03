@@ -9,6 +9,8 @@ export default defineConfig(async () => ({
   plugins: [react()],
   test: {
     environment: "jsdom",
+    include: ["src/**/*.test.{ts,tsx}"],
+    exclude: ["**/node_modules/**", "**/dist/**", "**/.worktrees/**"],
     setupFiles: "./src/test/setup.ts",
     globals: true,
   },
