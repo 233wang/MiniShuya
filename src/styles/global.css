@@ -45,6 +45,46 @@ button {
   animation-duration: 1.2s;
 }
 
+.pet--hover {
+  filter: brightness(1.04);
+}
+
+.pet--hover .pet__head {
+  transform: translateY(-3px);
+}
+
+.pet--pressed {
+  transform: translateY(2px) scaleY(0.98);
+}
+
+.pet--petting {
+  animation-name: pet-happy-bounce;
+  animation-duration: 0.8s;
+}
+
+.pet--petting .pet__blush {
+  opacity: 1;
+  transform: scaleX(1.2);
+}
+
+.pet--menu-open {
+  animation-play-state: paused;
+}
+
+.pet--sleepy {
+  animation-duration: 4.6s;
+}
+
+.pet--sleepy .pet__eye {
+  transform: scaleY(0.35);
+  animation: none;
+}
+
+.pet--sleepy .pet__mouth {
+  width: 12px;
+  border-bottom-width: 2px;
+}
+
 .pet__shadow {
   position: absolute;
   left: 45px;
@@ -259,6 +299,19 @@ button {
   }
   50% {
     transform: translateY(-8px) rotate(1deg);
+  }
+}
+
+@keyframes pet-happy-bounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  35% {
+    transform: translateY(-10px) rotate(-2deg);
+  }
+  70% {
+    transform: translateY(-4px) rotate(2deg);
   }
 }
 
