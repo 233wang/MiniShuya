@@ -4,10 +4,16 @@ type PetMood = "idle" | "dragging";
 
 type PetProps = {
   onDragStart: () => void;
+  onDragEnd: () => void;
 };
 
-export function Pet({ onDragStart }: PetProps) {
+export function Pet({ onDragStart, onDragEnd }: PetProps) {
   const [mood, setMood] = useState<PetMood>("idle");
+
+  const stopDragging = () => {
+    setMood("idle");
+    onDragEnd();
+  };
 
   return (
     <button
@@ -18,9 +24,9 @@ export function Pet({ onDragStart }: PetProps) {
         setMood("dragging");
         onDragStart();
       }}
-      onPointerUp={() => setMood("idle")}
-      onPointerCancel={() => setMood("idle")}
-      onPointerLeave={() => setMood("idle")}
+      onPointerUp={stopDragging}
+      onPointerCancel={stopDragging}
+      onPointerLeave={stopDragging}
     >
       <span className="pet__shadow" />
       <span className="pet__body" data-testid="pet-body">

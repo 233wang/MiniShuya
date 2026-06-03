@@ -12,6 +12,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             window::load_window_position,
+            window::save_current_position,
             window::save_window_position,
             window::start_drag
         ])
@@ -19,6 +20,13 @@ pub fn run() {
             if let Some(window) = app.get_webview_window("main") {
                 window.set_always_on_top(true)?;
                 window.set_decorations(false)?;
+
+                let app_handle = app.handle().clone();
+                window.on_window_event(move |event| {
+                    if matches!(event, tauri::WindowEvent::CloseRequested { .. }) {
+                        let _ = crate::window::save_current_window_position(&app_handle);
+                    }
+                });
             }
             window::apply_saved_position(app.handle())?;
             Ok(())

@@ -6,9 +6,13 @@ export function App() {
     void invoke("start_drag");
   };
 
+  const handleDragEnd = () => {
+    void invoke("save_current_position");
+  };
+
   return (
     <main className="app-shell">
-      <Pet onDragStart={handleDragStart} />
+      <Pet onDragStart={handleDragStart} onDragEnd={handleDragEnd} />
     </main>
   );
 }

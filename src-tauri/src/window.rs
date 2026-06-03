@@ -45,6 +45,29 @@ pub fn start_drag(window: WebviewWindow) -> Result<(), String> {
         .map_err(|error| format!("failed to start dragging: {error}"))
 }
 
+pub fn save_current_window_position(app: &AppHandle) -> Result<(), String> {
+    let Some(window) = app.get_webview_window("main") else {
+        return Ok(());
+    };
+
+    let position = window
+        .outer_position()
+        .map_err(|error| format!("failed to read window position: {error}"))?;
+
+    save_window_position(
+        app.clone(),
+        WindowPosition {
+            x: position.x,
+            y: position.y,
+        },
+    )
+}
+
+#[tauri::command]
+pub fn save_current_position(app: AppHandle) -> Result<(), String> {
+    save_current_window_position(&app)
+}
+
 pub fn apply_saved_position(app: &AppHandle) -> Result<(), String> {
     let Some(window) = app.get_webview_window("main") else {
         return Ok(());
