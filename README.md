@@ -61,3 +61,21 @@ The local network currently reaches GitHub through the proxy at:
 - The character can be dragged.
 - The character has an idle animation.
 - Closing and reopening restores the previous position.
+
+## Current Status
+
+Phase 1 demo is expected to support:
+
+- Transparent frameless always-on-top window.
+- Animated placeholder MiniShuya character.
+- Mouse drag movement.
+- Window position restore after restart.
+
+Last verified commands:
+
+```powershell
+pnpm test
+pnpm build
+cd src-tauri
+cargo test
+```
