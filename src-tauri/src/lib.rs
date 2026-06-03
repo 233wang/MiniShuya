@@ -1,8 +1,12 @@
 use tauri::Manager;
 
+mod character_alpha_mask;
+mod hit_test;
 mod window;
 mod window_position;
 
+#[cfg(test)]
+mod hit_test_tests;
 #[cfg(test)]
 mod window_position_tests;
 
@@ -15,12 +19,14 @@ pub fn run() {
             window::load_window_position,
             window::save_current_position,
             window::save_window_position,
+            window::set_menu_hit_region_visible,
             window::start_drag
         ])
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
                 window.set_always_on_top(true)?;
                 window.set_decorations(false)?;
+                hit_test::install_pet_hit_test(&window)?;
 
                 let app_handle = app.handle().clone();
                 window.on_window_event(move |event| {

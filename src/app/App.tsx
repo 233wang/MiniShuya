@@ -14,9 +14,18 @@ export function App() {
     void invoke("exit_app");
   };
 
+  const handleMenuVisibilityChange = (visible: boolean) => {
+    void invoke("set_menu_hit_region_visible", { visible });
+  };
+
   return (
     <main className="app-shell">
-      <Pet onDragStart={handleDragStart} onDragEnd={handleDragEnd} onExit={handleExit} />
+      <Pet
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onExit={handleExit}
+        onMenuVisibilityChange={handleMenuVisibilityChange}
+      />
     </main>
   );
 }

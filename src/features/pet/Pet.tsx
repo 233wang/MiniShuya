@@ -1,21 +1,22 @@
 import { useEffect, useState, type PointerEvent } from "react";
+import { minishuyaDefaultCharacter, petCharacterImageFor } from "./characterAssets";
 import {
   initialPetActionState,
   petActionClass,
   transitionPetActionState,
   type PetActionEvent,
 } from "./petActionState";
-import { minishuyaDefaultCharacter, petCharacterImageFor } from "./characterAssets";
 
 type PetProps = {
   onDragStart: () => void;
   onDragEnd: () => void;
   onExit: () => void;
+  onMenuVisibilityChange?: (visible: boolean) => void;
 };
 
 export const SLEEPY_AFTER_MS = 30_000;
 
-export function Pet({ onDragStart, onDragEnd, onExit }: PetProps) {
+export function Pet({ onDragStart, onDragEnd, onExit, onMenuVisibilityChange }: PetProps) {
   const [actionState, setActionState] = useState(initialPetActionState);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -39,6 +40,7 @@ export function Pet({ onDragStart, onDragEnd, onExit }: PetProps) {
 
   const closeMenu = () => {
     setIsMenuOpen(false);
+    onMenuVisibilityChange?.(false);
     dispatchAction({ type: "CONTEXT_MENU_CLOSE" });
   };
 
@@ -49,18 +51,21 @@ export function Pet({ onDragStart, onDragEnd, onExit }: PetProps) {
 
   const startDragging = () => {
     setIsMenuOpen(false);
+    onMenuVisibilityChange?.(false);
     dispatchAction({ type: "DRAG_START" });
     onDragStart();
   };
 
   const startPetting = () => {
     setIsMenuOpen(false);
+    onMenuVisibilityChange?.(false);
     dispatchAction({ type: "PETTING_START" });
   };
 
   const handleCharacterPointerDown = (event: PointerEvent) => {
     event.stopPropagation();
     setIsMenuOpen(false);
+    onMenuVisibilityChange?.(false);
     dispatchAction({ type: "DRAG_START" });
     onDragStart();
   };
@@ -92,6 +97,7 @@ export function Pet({ onDragStart, onDragEnd, onExit }: PetProps) {
       onContextMenu={(event) => {
         event.preventDefault();
         setIsMenuOpen(true);
+        onMenuVisibilityChange?.(true);
         dispatchAction({ type: "CONTEXT_MENU_OPEN" });
       }}
       onKeyDown={(event) => {

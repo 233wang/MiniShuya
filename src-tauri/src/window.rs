@@ -45,6 +45,11 @@ pub fn start_drag(window: WebviewWindow) -> Result<(), String> {
         .map_err(|error| format!("failed to start dragging: {error}"))
 }
 
+#[tauri::command]
+pub fn set_menu_hit_region_visible(visible: bool) {
+    crate::hit_test::set_menu_hit_region_visible(visible);
+}
+
 pub fn save_current_window_position(app: &AppHandle) -> Result<(), String> {
     let Some(window) = app.get_webview_window("main") else {
         return Ok(());

@@ -2,16 +2,26 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Pet } from "./Pet";
 
+const renderPet = (props?: Partial<Parameters<typeof Pet>[0]>) =>
+  render(
+    <Pet
+      onDragStart={() => undefined}
+      onDragEnd={() => undefined}
+      onExit={() => undefined}
+      {...props}
+    />,
+  );
+
 describe("Pet", () => {
   it("renders MiniShuya as an interactive character", () => {
-    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+    renderPet();
 
     expect(screen.getByRole("button", { name: "MiniShuya desktop pet" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "MiniShuya character" })).toBeInTheDocument();
   });
 
   it("does not intercept pointer events outside the character and menu", () => {
-    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+    renderPet();
 
     expect(screen.getByRole("button", { name: "MiniShuya desktop pet" })).toHaveStyle({
       pointerEvents: "none",
@@ -23,7 +33,7 @@ describe("Pet", () => {
 
   it("calls onDragStart when pointer drag begins", () => {
     const onDragStart = vi.fn();
-    render(<Pet onDragStart={onDragStart} onDragEnd={() => undefined} onExit={() => undefined} />);
+    renderPet({ onDragStart });
 
     fireEvent.pointerDown(screen.getByRole("img", { name: "MiniShuya character" }));
 
@@ -32,7 +42,7 @@ describe("Pet", () => {
 
   it("calls onDragEnd when pointer drag ends", () => {
     const onDragEnd = vi.fn();
-    render(<Pet onDragStart={() => undefined} onDragEnd={onDragEnd} onExit={() => undefined} />);
+    renderPet({ onDragEnd });
 
     fireEvent.pointerUp(screen.getByRole("button", { name: "MiniShuya desktop pet" }));
 
@@ -40,7 +50,7 @@ describe("Pet", () => {
   });
 
   it("shows a cute exit menu on right click", () => {
-    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+    renderPet();
 
     fireEvent.contextMenu(screen.getByRole("button", { name: "MiniShuya desktop pet" }));
 
@@ -50,7 +60,7 @@ describe("Pet", () => {
 
   it("calls onExit when the exit menu item is clicked", () => {
     const onExit = vi.fn();
-    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={onExit} />);
+    renderPet({ onExit });
 
     fireEvent.contextMenu(screen.getByRole("button", { name: "MiniShuya desktop pet" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "退出" }));
@@ -60,7 +70,7 @@ describe("Pet", () => {
 
   it("does not start dragging when the exit menu item is pressed", () => {
     const onDragStart = vi.fn();
-    render(<Pet onDragStart={onDragStart} onDragEnd={() => undefined} onExit={() => undefined} />);
+    renderPet({ onDragStart });
 
     fireEvent.contextMenu(screen.getByRole("button", { name: "MiniShuya desktop pet" }));
     fireEvent.pointerDown(screen.getByRole("menuitem", { name: "退出" }));
@@ -69,7 +79,7 @@ describe("Pet", () => {
   });
 
   it("hides the exit menu when Escape is pressed", () => {
-    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+    renderPet();
 
     const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
     fireEvent.contextMenu(pet);
@@ -78,8 +88,20 @@ describe("Pet", () => {
     expect(screen.queryByRole("menu", { name: "MiniShuya menu" })).not.toBeInTheDocument();
   });
 
+  it("reports native menu hit-region visibility while the menu is open", () => {
+    const onMenuVisibilityChange = vi.fn();
+    renderPet({ onMenuVisibilityChange });
+
+    const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
+    fireEvent.contextMenu(pet);
+    fireEvent.keyDown(pet, { key: "Escape" });
+
+    expect(onMenuVisibilityChange).toHaveBeenNthCalledWith(1, true);
+    expect(onMenuVisibilityChange).toHaveBeenNthCalledWith(2, false);
+  });
+
   it("hides the exit menu when dragging starts", () => {
-    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+    renderPet();
 
     const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
     fireEvent.contextMenu(pet);
@@ -89,7 +111,7 @@ describe("Pet", () => {
   });
 
   it("enters hover state when the pointer enters", () => {
-    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+    renderPet();
 
     const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
     fireEvent.pointerEnter(pet);
@@ -98,7 +120,7 @@ describe("Pet", () => {
   });
 
   it("uses menu-open state while the exit menu is visible", () => {
-    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+    renderPet();
 
     const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
     fireEvent.contextMenu(pet);
@@ -107,7 +129,7 @@ describe("Pet", () => {
   });
 
   it("enters petting state when the character image is double clicked", () => {
-    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+    renderPet();
 
     const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
     fireEvent.doubleClick(screen.getByRole("img", { name: "MiniShuya character" }));
@@ -117,7 +139,7 @@ describe("Pet", () => {
 
   it("enters sleepy state after a quiet period", () => {
     vi.useFakeTimers();
-    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+    renderPet();
 
     const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
     act(() => {
@@ -130,7 +152,7 @@ describe("Pet", () => {
 
   it("wakes from sleepy state on pointer interaction", () => {
     vi.useFakeTimers();
-    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+    renderPet();
 
     const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
     act(() => {
