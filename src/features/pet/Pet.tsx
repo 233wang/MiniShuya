@@ -2,7 +2,11 @@ import { useState } from "react";
 
 type PetMood = "idle" | "dragging";
 
-export function Pet() {
+type PetProps = {
+  onDragStart: () => void;
+};
+
+export function Pet({ onDragStart }: PetProps) {
   const [mood, setMood] = useState<PetMood>("idle");
 
   return (
@@ -10,7 +14,10 @@ export function Pet() {
       type="button"
       className={`pet pet--${mood}`}
       aria-label="MiniShuya desktop pet"
-      onPointerDown={() => setMood("dragging")}
+      onPointerDown={() => {
+        setMood("dragging");
+        onDragStart();
+      }}
       onPointerUp={() => setMood("idle")}
       onPointerCancel={() => setMood("idle")}
       onPointerLeave={() => setMood("idle")}
