@@ -71,11 +71,19 @@ Phase 1 demo is expected to support:
 - Mouse drag movement.
 - Window position restore after restart.
 
+Phase 2.1 adds:
+
+- A typed pet action state machine.
+- Hover, pressed, petting, dragging, menu-open, and sleepy state classes.
+- State-specific CSS reactions for the current fallback character.
+
 Last verified commands:
 
 ```powershell
 pnpm test
 pnpm build
 cd src-tauri
+cargo fmt --check
 cargo test
+cargo clippy
 ```
