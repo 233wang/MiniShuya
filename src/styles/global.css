@@ -1,0 +1,274 @@
+:root {
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: transparent;
+  color: #202124;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+}
+
+.app-shell {
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  place-items: center;
+  background: transparent;
+}
+
+.pet {
+  position: relative;
+  width: 220px;
+  height: 280px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: grab;
+  animation: pet-breathe 2.8s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+.pet:active,
+.pet--dragging {
+  cursor: grabbing;
+  animation-duration: 1.2s;
+}
+
+.pet__shadow {
+  position: absolute;
+  left: 45px;
+  bottom: 10px;
+  width: 130px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(58, 47, 79, 0.18);
+  filter: blur(1px);
+}
+
+.pet__body {
+  position: absolute;
+  left: 65px;
+  bottom: 42px;
+  width: 90px;
+  height: 105px;
+  border-radius: 42px 42px 30px 30px;
+  background: #6eb6ff;
+  box-shadow: inset 0 -12px 0 rgba(34, 89, 156, 0.18);
+}
+
+.pet__neck {
+  position: absolute;
+  left: 34px;
+  top: -18px;
+  width: 22px;
+  height: 26px;
+  border-radius: 12px;
+  background: #ffd3c7;
+}
+
+.pet__dress {
+  position: absolute;
+  left: 18px;
+  top: 36px;
+  width: 54px;
+  height: 44px;
+  border-radius: 18px 18px 24px 24px;
+  background: #fff7a8;
+}
+
+.pet__arm {
+  position: absolute;
+  top: 26px;
+  width: 24px;
+  height: 74px;
+  border-radius: 18px;
+  background: #ffd3c7;
+}
+
+.pet__arm--left {
+  left: -15px;
+  transform: rotate(12deg);
+}
+
+.pet__arm--right {
+  right: -15px;
+  transform: rotate(-12deg);
+}
+
+.pet__head {
+  position: absolute;
+  left: 45px;
+  top: 22px;
+  width: 130px;
+  height: 116px;
+  border-radius: 48% 48% 45% 45%;
+  background: #ffd8ce;
+  box-shadow: inset 0 -10px 0 rgba(195, 113, 104, 0.08);
+}
+
+.pet__hair--back {
+  position: absolute;
+  inset: -16px -8px 44px;
+  z-index: -1;
+  border-radius: 52px 52px 36px 36px;
+  background: #3d3049;
+}
+
+.pet__bangs {
+  position: absolute;
+  left: 18px;
+  top: -10px;
+  width: 94px;
+  height: 42px;
+  border-radius: 44px 44px 20px 20px;
+  background: #493958;
+}
+
+.pet__eye {
+  position: absolute;
+  top: 54px;
+  width: 14px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2b2531;
+  animation: pet-blink 4.8s infinite;
+}
+
+.pet__eye--left {
+  left: 37px;
+}
+
+.pet__eye--right {
+  right: 37px;
+}
+
+.pet__blush {
+  position: absolute;
+  top: 77px;
+  width: 20px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 126, 143, 0.45);
+}
+
+.pet__blush--left {
+  left: 24px;
+}
+
+.pet__blush--right {
+  right: 24px;
+}
+
+.pet__mouth {
+  position: absolute;
+  left: 58px;
+  top: 78px;
+  width: 14px;
+  height: 8px;
+  border-bottom: 3px solid #8e5062;
+  border-radius: 0 0 14px 14px;
+}
+
+.pet__leg {
+  position: absolute;
+  bottom: 30px;
+  width: 25px;
+  height: 48px;
+  border-radius: 14px;
+  background: #ffd3c7;
+}
+
+.pet__leg--left {
+  left: 78px;
+}
+
+.pet__leg--right {
+  right: 78px;
+}
+
+.pet-menu {
+  position: absolute;
+  right: 4px;
+  top: 22px;
+  z-index: 2;
+  width: 108px;
+  padding: 10px;
+  border: 2px solid #ff9dbb;
+  border-radius: 16px;
+  background: #fff8fb;
+  box-shadow:
+    0 12px 24px rgba(122, 93, 155, 0.22),
+    inset 0 0 0 3px rgba(255, 228, 238, 0.9);
+  color: #7a3f62;
+  text-align: left;
+}
+
+.pet-menu__sparkle {
+  position: absolute;
+  right: 11px;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, #fff7a8 0 32%, transparent 35%),
+    conic-gradient(from 45deg, transparent 0 18%, #ffe073 18% 30%, transparent 30% 68%, #ffe073 68% 80%, transparent 80%);
+}
+
+.pet-menu__title {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #5a4e8d;
+}
+
+.pet-menu__item {
+  display: grid;
+  min-height: 34px;
+  place-items: center;
+  border-radius: 12px;
+  background: #ffe2ec;
+  color: #8b2f54;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: inset 0 -3px 0 rgba(214, 90, 130, 0.18);
+}
+
+.pet-menu__item:hover,
+.pet-menu__item:focus-visible {
+  outline: 0;
+  background: #ffd2e2;
+}
+
+@keyframes pet-breathe {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(1deg);
+  }
+}
+
+@keyframes pet-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.08);
+  }
+}
