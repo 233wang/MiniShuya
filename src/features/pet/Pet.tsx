@@ -5,6 +5,7 @@ import {
   transitionPetActionState,
   type PetActionEvent,
 } from "./petActionState";
+import { minishuyaDefaultCharacter, petCharacterImageFor } from "./characterAssets";
 
 type PetProps = {
   onDragStart: () => void;
@@ -52,10 +53,16 @@ export function Pet({ onDragStart, onDragEnd, onExit }: PetProps) {
     onDragStart();
   };
 
-  const startPetting = (event: PointerEvent) => {
-    event.stopPropagation();
+  const startPetting = () => {
     setIsMenuOpen(false);
     dispatchAction({ type: "PETTING_START" });
+  };
+
+  const handleCharacterPointerDown = (event: PointerEvent) => {
+    event.stopPropagation();
+    setIsMenuOpen(false);
+    dispatchAction({ type: "DRAG_START" });
+    onDragStart();
   };
 
   const handlePointerLeave = () => {
@@ -77,6 +84,9 @@ export function Pet({ onDragStart, onDragEnd, onExit }: PetProps) {
       type="button"
       className={`pet ${petActionClass(actionState)}`}
       aria-label="MiniShuya desktop pet"
+      style={{
+        pointerEvents: "none",
+      }}
       onPointerEnter={() => dispatchAction({ type: "POINTER_ENTER" })}
       onPointerLeave={handlePointerLeave}
       onContextMenu={(event) => {
@@ -93,33 +103,30 @@ export function Pet({ onDragStart, onDragEnd, onExit }: PetProps) {
       onPointerUp={stopDragging}
       onPointerCancel={stopDragging}
     >
-      <span className="pet__shadow" />
-      <span className="pet__body" data-testid="pet-body">
-        <span className="pet__neck" />
-        <span className="pet__dress" />
-        <span className="pet__arm pet__arm--left" />
-        <span className="pet__arm pet__arm--right" />
-      </span>
-      <span className="pet__head" data-testid="pet-face" onPointerDown={startPetting}>
-        <span className="pet__hair pet__hair--back" />
-        <span className="pet__bangs" />
-        <span className="pet__eye pet__eye--left" />
-        <span className="pet__eye pet__eye--right" />
-        <span className="pet__blush pet__blush--left" />
-        <span className="pet__blush pet__blush--right" />
-        <span className="pet__mouth" />
-      </span>
-      <span className="pet__leg pet__leg--left" />
-      <span className="pet__leg pet__leg--right" />
+      <img
+        className="pet__character"
+        src={petCharacterImageFor(actionState)}
+        width={minishuyaDefaultCharacter.size.width}
+        height={minishuyaDefaultCharacter.size.height}
+        alt="MiniShuya character"
+        draggable={false}
+        style={{
+          pointerEvents: "auto",
+        }}
+        onDoubleClick={startPetting}
+        onPointerDown={handleCharacterPointerDown}
+      />
       {isMenuOpen ? (
         <span
           className="pet-menu"
           role="menu"
           aria-label="MiniShuya menu"
+          style={{
+            pointerEvents: "auto",
+          }}
           onClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
         >
-          <span className="pet-menu__sparkle" aria-hidden="true" />
           <span className="pet-menu__title">MiniShuya</span>
           <span
             className="pet-menu__item"

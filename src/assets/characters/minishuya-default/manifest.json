@@ -1,0 +1,22 @@
+{
+  "id": "minishuya-default",
+  "displayName": "MiniShuya Default",
+  "source": {
+    "type": "imagegen-reference",
+    "note": "Candidate idle asset based on the user-approved more-faithful character direction."
+  },
+  "size": {
+    "width": 150,
+    "height": 225
+  },
+  "menuAnchor": "right",
+  "states": {
+    "idle": "idle.png",
+    "hover": "idle.png",
+    "pressed": "idle.png",
+    "petting": "idle.png",
+    "dragging": "idle.png",
+    "menuOpen": "idle.png",
+    "sleepy": "idle.png"
+  }
+}

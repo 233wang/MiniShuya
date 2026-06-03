@@ -7,15 +7,25 @@ describe("Pet", () => {
     render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
 
     expect(screen.getByRole("button", { name: "MiniShuya desktop pet" })).toBeInTheDocument();
-    expect(screen.getByTestId("pet-face")).toBeInTheDocument();
-    expect(screen.getByTestId("pet-body")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "MiniShuya character" })).toBeInTheDocument();
+  });
+
+  it("does not intercept pointer events outside the character and menu", () => {
+    render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
+
+    expect(screen.getByRole("button", { name: "MiniShuya desktop pet" })).toHaveStyle({
+      pointerEvents: "none",
+    });
+    expect(screen.getByRole("img", { name: "MiniShuya character" })).toHaveStyle({
+      pointerEvents: "auto",
+    });
   });
 
   it("calls onDragStart when pointer drag begins", () => {
     const onDragStart = vi.fn();
     render(<Pet onDragStart={onDragStart} onDragEnd={() => undefined} onExit={() => undefined} />);
 
-    fireEvent.pointerDown(screen.getByRole("button", { name: "MiniShuya desktop pet" }));
+    fireEvent.pointerDown(screen.getByRole("img", { name: "MiniShuya character" }));
 
     expect(onDragStart).toHaveBeenCalledTimes(1);
   });
@@ -96,11 +106,11 @@ describe("Pet", () => {
     expect(pet).toHaveClass("pet--menu-open");
   });
 
-  it("enters petting state from the face hit area", () => {
+  it("enters petting state when the character image is double clicked", () => {
     render(<Pet onDragStart={() => undefined} onDragEnd={() => undefined} onExit={() => undefined} />);
 
     const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
-    fireEvent.pointerDown(screen.getByTestId("pet-face"));
+    fireEvent.doubleClick(screen.getByRole("img", { name: "MiniShuya character" }));
 
     expect(pet).toHaveClass("pet--petting");
   });
