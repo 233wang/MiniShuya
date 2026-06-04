@@ -1,0 +1,32 @@
+import { describe, expect, it } from "vitest";
+import { actionForPetState, frameForAction, minishuyaDefaultCharacter } from "./characterAssets";
+
+describe("characterAssets", () => {
+  it("maps pet action states to manifest actions", () => {
+    expect(actionForPetState(minishuyaDefaultCharacter, "idle").id).toBe("idle");
+    expect(actionForPetState(minishuyaDefaultCharacter, "petting").id).toBe("petting");
+    expect(actionForPetState(minishuyaDefaultCharacter, "dragging").id).toBe("dragging");
+    expect(actionForPetState(minishuyaDefaultCharacter, "sleepy").id).toBe("sleepy");
+  });
+
+  it("falls back to idle when a mapped action is missing", () => {
+    const character = {
+      ...minishuyaDefaultCharacter,
+      stateMap: {
+        ...minishuyaDefaultCharacter.stateMap,
+        hover: "missing-action",
+      },
+    };
+
+    expect(actionForPetState(character, "hover").id).toBe("idle");
+  });
+
+  it("returns a frame by action and wraps the frame index", () => {
+    const firstFrame = frameForAction(minishuyaDefaultCharacter, "idle", 0);
+    const wrappedFrame = frameForAction(minishuyaDefaultCharacter, "idle", 99);
+
+    expect(firstFrame.key).toBe("idle-01");
+    expect(wrappedFrame.key).toMatch(/^idle-/);
+    expect(wrappedFrame.src).toBeTruthy();
+  });
+});

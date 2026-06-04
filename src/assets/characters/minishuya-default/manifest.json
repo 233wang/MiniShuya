@@ -9,14 +9,46 @@
     "width": 150,
     "height": 225
   },
-  "menuAnchor": "right",
-  "states": {
-    "idle": "idle.png",
-    "hover": "idle.png",
-    "pressed": "idle.png",
-    "petting": "idle.png",
-    "dragging": "idle.png",
-    "menuOpen": "idle.png",
-    "sleepy": "idle.png"
+  "defaultAction": "idle",
+  "actions": {
+    "idle": {
+      "frames": ["frames/idle-01.png"],
+      "frameDurationMs": 700,
+      "loop": true
+    },
+    "hover": {
+      "frames": ["frames/idle-01.png"],
+      "frameDurationMs": 700,
+      "loop": true
+    },
+    "dragging": {
+      "frames": ["frames/idle-01.png"],
+      "frameDurationMs": 700,
+      "loop": true
+    },
+    "petting": {
+      "frames": ["frames/idle-01.png"],
+      "frameDurationMs": 260,
+      "loop": true
+    },
+    "sleepy": {
+      "frames": ["frames/idle-01.png"],
+      "frameDurationMs": 900,
+      "loop": true
+    },
+    "menuOpen": {
+      "frames": ["frames/idle-01.png"],
+      "frameDurationMs": 700,
+      "loop": true
+    }
+  },
+  "stateMap": {
+    "idle": "idle",
+    "hover": "hover",
+    "pressed": "hover",
+    "petting": "petting",
+    "dragging": "dragging",
+    "menuOpen": "menuOpen",
+    "sleepy": "sleepy"
   }
 }
