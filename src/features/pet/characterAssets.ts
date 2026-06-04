@@ -1,7 +1,3 @@
-import draggingFrame01 from "../../assets/characters/minishuya-default/frames/dragging-01.png";
-import idleFrame01 from "../../assets/characters/minishuya-default/frames/idle-01.png";
-import pettingFrame01 from "../../assets/characters/minishuya-default/frames/petting-01.png";
-import sleepyFrame01 from "../../assets/characters/minishuya-default/frames/sleepy-01.png";
 import manifest from "../../assets/characters/minishuya-default/manifest.json";
 import type { PetActionState } from "./petActionState";
 
@@ -38,12 +34,20 @@ export type PetCharacterManifest = {
   stateMap: Record<PetActionState, PetCharacterActionId>;
 };
 
-const frameSources: Record<string, string> = {
-  "frames/dragging-01.png": draggingFrame01,
-  "frames/idle-01.png": idleFrame01,
-  "frames/petting-01.png": pettingFrame01,
-  "frames/sleepy-01.png": sleepyFrame01,
-};
+const frameModules = import.meta.glob(
+  "../../assets/characters/minishuya-default/frames/*.png",
+  {
+    eager: true,
+    import: "default",
+  },
+) as Record<string, string>;
+
+const frameSources = Object.fromEntries(
+  Object.entries(frameModules).map(([path, src]) => {
+    const segments = path.split("/");
+    return [`frames/${segments[segments.length - 1]}`, src];
+  }),
+);
 
 function frameKey(path: string): string {
   return path.replace(/^frames\//, "").replace(/\.png$/, "");
@@ -56,11 +60,20 @@ function actionFromManifest(id: PetCharacterActionId): PetCharacterAction {
     id,
     frames: action.frames.map((path) => ({
       key: frameKey(path),
-      src: frameSources[path],
+      src: frameSourceFor(path),
     })),
     frameDurationMs: action.frameDurationMs,
     loop: action.loop,
   };
+}
+
+function frameSourceFor(path: string): string {
+  const source = frameSources[path];
+  if (!source) {
+    throw new Error(`Missing frame source for ${path}`);
+  }
+
+  return source;
 }
 
 export const minishuyaDefaultCharacter: PetCharacterManifest = {

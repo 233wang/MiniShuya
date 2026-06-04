@@ -55,7 +55,7 @@ fn maps_display_coordinate_to_character_alpha_mask() {
 #[test]
 fn uses_frame_specific_alpha_masks() {
     let character = regions(false).character;
-    let point = HitPoint { x: 13, y: 86 };
+    let point = HitPoint { x: 53, y: 130 };
 
     assert!(!is_character_opaque_at_frame(point, character, "idle-01"));
     assert!(is_character_opaque_at_frame(

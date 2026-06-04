@@ -22,18 +22,45 @@
       "loop": true
     },
     "dragging": {
-      "frames": ["frames/dragging-01.png"],
-      "frameDurationMs": 700,
+      "frames": [
+        "frames/dragging-01.png",
+        "frames/dragging-02.png",
+        "frames/dragging-03.png",
+        "frames/dragging-04.png",
+        "frames/dragging-05.png",
+        "frames/dragging-06.png",
+        "frames/dragging-07.png",
+        "frames/dragging-08.png"
+      ],
+      "frameDurationMs": 95,
       "loop": true
     },
     "petting": {
-      "frames": ["frames/petting-01.png"],
-      "frameDurationMs": 260,
+      "frames": [
+        "frames/petting-01.png",
+        "frames/petting-02.png",
+        "frames/petting-03.png",
+        "frames/petting-04.png",
+        "frames/petting-05.png",
+        "frames/petting-06.png",
+        "frames/petting-07.png",
+        "frames/petting-08.png"
+      ],
+      "frameDurationMs": 110,
       "loop": true
     },
     "sleepy": {
-      "frames": ["frames/sleepy-01.png"],
-      "frameDurationMs": 900,
+      "frames": [
+        "frames/sleepy-01.png",
+        "frames/sleepy-02.png",
+        "frames/sleepy-03.png",
+        "frames/sleepy-04.png",
+        "frames/sleepy-05.png",
+        "frames/sleepy-06.png",
+        "frames/sleepy-07.png",
+        "frames/sleepy-08.png"
+      ],
+      "frameDurationMs": 140,
       "loop": true
     },
     "menuOpen": {
