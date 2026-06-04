@@ -2,6 +2,15 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest";
 import { Pet } from "./Pet";
 
+function deferred<T = void>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+
+  return { promise, resolve };
+}
+
 const renderPet = (props?: Partial<Parameters<typeof Pet>[0]>) =>
   render(
     <Pet
@@ -67,6 +76,30 @@ describe("Pet", () => {
     fireEvent.pointerMove(character, { clientX: 24, clientY: 10, pointerId: 1 });
     fireEvent.pointerUp(character, { clientX: 24, clientY: 10, pointerId: 1 });
 
+    expect(onDragEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it("ends dragging when the native drag operation completes", async () => {
+    const drag = deferred();
+    const onDragStart = vi.fn(() => drag.promise);
+    const onDragEnd = vi.fn();
+    renderPet({ onDragStart, onDragEnd });
+
+    const character = screen.getByRole("img", { name: "MiniShuya character" });
+    const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
+    fireEvent.pointerDown(character, { clientX: 10, clientY: 10, pointerId: 1 });
+    fireEvent.pointerMove(character, { clientX: 24, clientY: 10, pointerId: 1 });
+
+    expect(pet).toHaveClass("pet--dragging");
+
+    await act(async () => {
+      drag.resolve();
+      await drag.promise;
+    });
+
+    await waitFor(() => {
+      expect(pet).toHaveClass("pet--idle");
+    });
     expect(onDragEnd).toHaveBeenCalledTimes(1);
   });
 

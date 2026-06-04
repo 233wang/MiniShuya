@@ -33,7 +33,7 @@
         "frames/dragging-08.png"
       ],
       "frameDurationMs": 95,
-      "loop": false
+      "loop": true
     },
     "petting": {
       "frames": [

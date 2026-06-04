@@ -13,7 +13,7 @@ import {
 import { useActionFrames } from "./useActionFrames";
 
 type PetProps = {
-  onDragStart: () => void;
+  onDragStart: () => void | Promise<void>;
   onDragEnd: () => void;
   onExit: () => void;
   onMenuVisibilityChange?: (visible: boolean) => void;
@@ -45,6 +45,7 @@ export function Pet({
   const [sleepyCycleKey, setSleepyCycleKey] = useState(0);
   const characterRef = useRef<HTMLImageElement>(null);
   const dragCandidateRef = useRef<DragCandidate | null>(null);
+  const isDraggingRef = useRef(false);
   const currentAction = actionForPetState(minishuyaDefaultCharacter, actionState);
   const { frame } = useActionFrames(currentAction, sleepyCycleKey);
 
@@ -142,8 +143,22 @@ export function Pet({
   };
 
   const stopDragging = () => {
+    if (!isDraggingRef.current) {
+      return;
+    }
+
+    isDraggingRef.current = false;
+    dragCandidateRef.current = null;
     dispatchAction({ type: "DRAG_END" });
     onDragEnd();
+  };
+
+  const startNativeDragging = () => {
+    isDraggingRef.current = true;
+    dispatchAction({ type: "DRAG_START" });
+    void Promise.resolve(onDragStart()).finally(() => {
+      stopDragging();
+    });
   };
 
   const startPetting = () => {
@@ -185,8 +200,7 @@ export function Pet({
     candidate.dragging = true;
     setIsMenuOpen(false);
     onMenuVisibilityChange?.(false);
-    dispatchAction({ type: "DRAG_START" });
-    onDragStart();
+    startNativeDragging();
   };
 
   const handleCharacterPointerUp = (event: PointerEvent) => {
@@ -199,7 +213,7 @@ export function Pet({
       // Pointer capture is best-effort in the test environment.
     }
 
-    if (candidate?.dragging) {
+    if (candidate?.dragging || isDraggingRef.current) {
       stopDragging();
       return;
     }

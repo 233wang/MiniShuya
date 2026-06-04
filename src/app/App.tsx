@@ -4,12 +4,14 @@ import { Pet } from "../features/pet/Pet";
 
 export function App() {
   const handleDragStart = () => {
-    void invoke("start_drag");
+    return invoke("start_drag")
+      .then(() => undefined)
+      .finally(() => {
+        void invoke("save_current_position");
+      });
   };
 
-  const handleDragEnd = () => {
-    void invoke("save_current_position");
-  };
+  const handleDragEnd = () => undefined;
 
   const handleExit = () => {
     void invoke("exit_app");
