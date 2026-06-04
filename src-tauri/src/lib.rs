@@ -17,12 +17,14 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             window::exit_app,
             window::load_window_position,
+            window::move_window_by,
             window::save_current_position,
             window::save_window_position,
             window::set_character_hit_region,
             window::set_current_character_frame,
             window::set_menu_hit_region_visible,
-            window::start_drag
+            window::start_drag,
+            window::system_idle_millis
         ])
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {

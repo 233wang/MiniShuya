@@ -26,7 +26,8 @@ describe("pet action state", () => {
   it("dragging overrides other states until drag ends", () => {
     expect(transitionPetActionState("petting", { type: "DRAG_START" })).toBe("dragging");
     expect(transitionPetActionState("dragging", { type: "POINTER_ENTER" })).toBe("dragging");
-    expect(transitionPetActionState("dragging", { type: "DRAG_END" })).toBe("idle");
+    expect(transitionPetActionState("dragging", { type: "DRAG_END" })).toBe("draggingRecover");
+    expect(transitionPetActionState("draggingRecover", { type: "DRAG_RECOVER_END" })).toBe("idle");
   });
 
   it("menuOpen blocks pointer presentation until closed", () => {
@@ -46,10 +47,16 @@ describe("pet action state", () => {
     expect(transitionPetActionState("sleepy", { type: "WAKE" })).toBe("idle");
   });
 
-  it.each<PetActionState>(["idle", "hover", "pressed", "petting", "dragging", "menuOpen", "sleepy"])(
-    "maps %s to a stable CSS class",
-    (state) => {
-      expect(petActionClass(state)).toMatch(/^pet--/);
-    },
-  );
+  it.each<PetActionState>([
+    "idle",
+    "hover",
+    "pressed",
+    "petting",
+    "dragging",
+    "draggingRecover",
+    "menuOpen",
+    "sleepy",
+  ])("maps %s to a stable CSS class", (state) => {
+    expect(petActionClass(state)).toMatch(/^pet--/);
+  });
 });

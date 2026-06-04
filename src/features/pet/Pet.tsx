@@ -13,9 +13,10 @@ import {
 import { useActionFrames } from "./useActionFrames";
 
 type PetProps = {
-  onDragStart: () => void | Promise<void>;
+  onDragMove: (delta: { deltaX: number; deltaY: number }) => void;
   onDragEnd: () => void;
   onExit: () => void;
+  systemIdleMillis: number;
   onMenuVisibilityChange?: (visible: boolean) => void;
   onCharacterHitRegionChange?: (region: CharacterHitRegion) => void;
   onCharacterFrameChange?: (frameKey: string) => void;
@@ -33,9 +34,10 @@ type DragCandidate = {
 };
 
 export function Pet({
-  onDragStart,
+  onDragMove,
   onDragEnd,
   onExit,
+  systemIdleMillis,
   onMenuVisibilityChange,
   onCharacterHitRegionChange,
   onCharacterFrameChange,
@@ -45,7 +47,6 @@ export function Pet({
   const [sleepyCycleKey, setSleepyCycleKey] = useState(0);
   const characterRef = useRef<HTMLImageElement>(null);
   const dragCandidateRef = useRef<DragCandidate | null>(null);
-  const isDraggingRef = useRef(false);
   const currentAction = actionForPetState(minishuyaDefaultCharacter, actionState);
   const { frame } = useActionFrames(currentAction, sleepyCycleKey);
 
@@ -60,12 +61,15 @@ export function Pet({
   };
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => {
+    if (systemIdleMillis >= SLEEPY_AFTER_MS) {
       dispatchAction({ type: "IDLE_TIMEOUT" });
-    }, SLEEPY_AFTER_MS);
+      return;
+    }
 
-    return () => window.clearTimeout(timeout);
-  }, [actionState]);
+    if (actionState === "sleepy") {
+      dispatchAction({ type: "WAKE" });
+    }
+  }, [actionState, systemIdleMillis]);
 
   useEffect(() => {
     if (actionState !== "sleepy") {
@@ -81,12 +85,14 @@ export function Pet({
   }, [actionState]);
 
   useEffect(() => {
-    if (actionState !== "petting") {
+    if (actionState !== "petting" && actionState !== "draggingRecover") {
       return undefined;
     }
 
     const timeout = window.setTimeout(() => {
-      dispatchAction({ type: "PETTING_END" });
+      dispatchAction({
+        type: actionState === "petting" ? "PETTING_END" : "DRAG_RECOVER_END",
+      });
     }, currentAction.frames.length * currentAction.frameDurationMs);
 
     return () => window.clearTimeout(timeout);
@@ -143,22 +149,18 @@ export function Pet({
   };
 
   const stopDragging = () => {
-    if (!isDraggingRef.current) {
+    const candidate = dragCandidateRef.current;
+    if (!candidate?.dragging) {
       return;
     }
 
-    isDraggingRef.current = false;
     dragCandidateRef.current = null;
     dispatchAction({ type: "DRAG_END" });
     onDragEnd();
   };
 
-  const startNativeDragging = () => {
-    isDraggingRef.current = true;
+  const startDraggingState = () => {
     dispatchAction({ type: "DRAG_START" });
-    void Promise.resolve(onDragStart()).finally(() => {
-      stopDragging();
-    });
   };
 
   const startPetting = () => {
@@ -188,7 +190,19 @@ export function Pet({
 
   const handleCharacterPointerMove = (event: PointerEvent) => {
     const candidate = dragCandidateRef.current;
-    if (!candidate || candidate.pointerId !== event.pointerId || candidate.dragging) {
+    if (!candidate || candidate.pointerId !== event.pointerId) {
+      return;
+    }
+
+    if (candidate.dragging) {
+      const deltaX = Math.round(event.clientX - candidate.x);
+      const deltaY = Math.round(event.clientY - candidate.y);
+      candidate.x = event.clientX;
+      candidate.y = event.clientY;
+
+      if (deltaX !== 0 || deltaY !== 0) {
+        onDragMove({ deltaX, deltaY });
+      }
       return;
     }
 
@@ -197,10 +211,15 @@ export function Pet({
       return;
     }
 
+    const deltaX = Math.round(event.clientX - candidate.x);
+    const deltaY = Math.round(event.clientY - candidate.y);
+    candidate.x = event.clientX;
+    candidate.y = event.clientY;
     candidate.dragging = true;
     setIsMenuOpen(false);
     onMenuVisibilityChange?.(false);
-    startNativeDragging();
+    startDraggingState();
+    onDragMove({ deltaX, deltaY });
   };
 
   const handleCharacterPointerUp = (event: PointerEvent) => {
@@ -213,7 +232,7 @@ export function Pet({
       // Pointer capture is best-effort in the test environment.
     }
 
-    if (candidate?.dragging || isDraggingRef.current) {
+    if (candidate?.dragging) {
       stopDragging();
       return;
     }
@@ -228,6 +247,24 @@ export function Pet({
 
     dispatchAction({ type: "POINTER_LEAVE" });
   };
+
+  useEffect(() => {
+    const stopActiveDrag = () => {
+      stopDragging();
+    };
+
+    window.addEventListener("pointerup", stopActiveDrag);
+    window.addEventListener("pointercancel", stopActiveDrag);
+    window.addEventListener("mouseup", stopActiveDrag);
+    window.addEventListener("blur", stopActiveDrag);
+
+    return () => {
+      window.removeEventListener("pointerup", stopActiveDrag);
+      window.removeEventListener("pointercancel", stopActiveDrag);
+      window.removeEventListener("mouseup", stopActiveDrag);
+      window.removeEventListener("blur", stopActiveDrag);
+    };
+  });
 
   return (
     <button

@@ -46,6 +46,50 @@ pub fn start_drag(window: WebviewWindow) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn move_window_by(window: WebviewWindow, delta_x: i32, delta_y: i32) -> Result<(), String> {
+    let position = window
+        .outer_position()
+        .map_err(|error| format!("failed to read window position: {error}"))?;
+
+    window
+        .set_position(PhysicalPosition::new(
+            position.x + delta_x,
+            position.y + delta_y,
+        ))
+        .map_err(|error| format!("failed to move window: {error}"))
+}
+
+#[tauri::command]
+pub fn system_idle_millis() -> Result<u64, String> {
+    system_idle_millis_impl()
+}
+
+#[cfg(windows)]
+fn system_idle_millis_impl() -> Result<u64, String> {
+    use std::mem::size_of;
+    use windows::Win32::System::SystemInformation::GetTickCount;
+    use windows::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
+
+    let mut info = LASTINPUTINFO {
+        cbSize: size_of::<LASTINPUTINFO>() as u32,
+        dwTime: 0,
+    };
+
+    unsafe {
+        if !GetLastInputInfo(&mut info).as_bool() {
+            return Err("failed to read system idle time".to_string());
+        }
+
+        Ok(GetTickCount().wrapping_sub(info.dwTime) as u64)
+    }
+}
+
+#[cfg(not(windows))]
+fn system_idle_millis_impl() -> Result<u64, String> {
+    Ok(0)
+}
+
+#[tauri::command]
 pub fn set_menu_hit_region_visible(visible: bool) {
     crate::hit_test::set_menu_hit_region_visible(visible);
 }

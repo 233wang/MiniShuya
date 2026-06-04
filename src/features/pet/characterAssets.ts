@@ -8,7 +8,14 @@ export type CharacterHitRegion = {
   height: number;
 };
 
-export type PetCharacterActionId = "idle" | "hover" | "dragging" | "petting" | "sleepy" | "menuOpen";
+export type PetCharacterActionId =
+  | "idle"
+  | "hover"
+  | "dragging"
+  | "draggingRecover"
+  | "petting"
+  | "sleepy"
+  | "menuOpen";
 
 export type PetCharacterFrame = {
   key: string;
@@ -85,6 +92,7 @@ export const minishuyaDefaultCharacter: PetCharacterManifest = {
     idle: actionFromManifest("idle"),
     hover: actionFromManifest("hover"),
     dragging: actionFromManifest("dragging"),
+    draggingRecover: actionFromManifest("draggingRecover"),
     petting: actionFromManifest("petting"),
     sleepy: actionFromManifest("sleepy"),
     menuOpen: actionFromManifest("menuOpen"),

@@ -4,6 +4,7 @@ export type PetActionState =
   | "pressed"
   | "petting"
   | "dragging"
+  | "draggingRecover"
   | "menuOpen"
   | "sleepy";
 
@@ -14,6 +15,7 @@ export type PetActionEvent =
   | { type: "POINTER_UP" }
   | { type: "DRAG_START" }
   | { type: "DRAG_END" }
+  | { type: "DRAG_RECOVER_END" }
   | { type: "CONTEXT_MENU_OPEN" }
   | { type: "CONTEXT_MENU_CLOSE" }
   | { type: "PETTING_START" }
@@ -49,6 +51,8 @@ export function transitionPetActionState(
     case "DRAG_START":
       return "dragging";
     case "DRAG_END":
+      return "draggingRecover";
+    case "DRAG_RECOVER_END":
       return "idle";
     case "CONTEXT_MENU_OPEN":
       return "menuOpen";

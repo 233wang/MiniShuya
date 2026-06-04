@@ -23,17 +23,23 @@
     },
     "dragging": {
       "frames": [
-        "frames/dragging-01.png",
         "frames/dragging-02.png",
         "frames/dragging-03.png",
-        "frames/dragging-04.png",
-        "frames/dragging-05.png",
-        "frames/dragging-06.png",
-        "frames/dragging-07.png",
-        "frames/dragging-08.png"
+        "frames/dragging-04.png"
       ],
       "frameDurationMs": 95,
       "loop": true
+    },
+    "draggingRecover": {
+      "frames": [
+        "frames/dragging-05.png",
+        "frames/dragging-06.png",
+        "frames/dragging-07.png",
+        "frames/dragging-08.png",
+        "frames/idle-01.png"
+      ],
+      "frameDurationMs": 95,
+      "loop": false
     },
     "petting": {
       "frames": [
@@ -75,6 +81,7 @@
     "pressed": "hover",
     "petting": "petting",
     "dragging": "dragging",
+    "draggingRecover": "draggingRecover",
     "menuOpen": "menuOpen",
     "sleepy": "sleepy"
   }
