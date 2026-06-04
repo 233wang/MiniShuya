@@ -34,4 +34,10 @@ describe("characterAssets", () => {
     expect(wrappedFrame.key).toMatch(/^idle-/);
     expect(wrappedFrame.src).toBeTruthy();
   });
+
+  it("uses dedicated generated frames for interactive actions", () => {
+    expect(frameForAction(minishuyaDefaultCharacter, "petting", 0).key).toBe("petting-01");
+    expect(frameForAction(minishuyaDefaultCharacter, "sleepy", 0).key).toBe("sleepy-01");
+    expect(frameForAction(minishuyaDefaultCharacter, "dragging", 0).key).toBe("dragging-01");
+  });
 });

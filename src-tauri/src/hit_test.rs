@@ -8,7 +8,7 @@ use std::{
 };
 
 use crate::character_alpha_mask::{
-    CHARACTER_ALPHA_HEIGHT, CHARACTER_ALPHA_MASK, CHARACTER_ALPHA_WIDTH,
+    character_alpha_mask_for_frame, CHARACTER_ALPHA_HEIGHT, CHARACTER_ALPHA_WIDTH,
 };
 
 static MENU_HIT_REGION_VISIBLE: AtomicBool = AtomicBool::new(false);
@@ -105,7 +105,6 @@ pub fn set_current_character_frame(frame_key: String) {
     }
 }
 
-#[cfg(test)]
 pub fn current_character_frame_key() -> String {
     CURRENT_CHARACTER_FRAME_KEY
         .lock()
@@ -127,6 +126,14 @@ pub fn current_pet_hit_regions(menu_visible: bool) -> PetHitRegions {
 }
 
 pub fn is_character_opaque_at(point: HitPoint, display_rect: HitRect) -> bool {
+    is_character_opaque_at_frame(point, display_rect, &current_character_frame_key())
+}
+
+pub fn is_character_opaque_at_frame(
+    point: HitPoint,
+    display_rect: HitRect,
+    frame_key: &str,
+) -> bool {
     if !display_rect.contains(point) {
         return false;
     }
@@ -143,16 +150,16 @@ pub fn is_character_opaque_at(point: HitPoint, display_rect: HitRect) -> bool {
     let source_x = local_x * CHARACTER_ALPHA_WIDTH / display_width;
     let source_y = local_y * CHARACTER_ALPHA_HEIGHT / display_height;
 
-    is_alpha_mask_opaque(source_x, source_y)
+    is_alpha_mask_opaque(source_x, source_y, frame_key)
 }
 
-fn is_alpha_mask_opaque(x: usize, y: usize) -> bool {
+fn is_alpha_mask_opaque(x: usize, y: usize, frame_key: &str) -> bool {
     if x >= CHARACTER_ALPHA_WIDTH || y >= CHARACTER_ALPHA_HEIGHT {
         return false;
     }
 
     let index = y * CHARACTER_ALPHA_WIDTH + x;
-    let byte = CHARACTER_ALPHA_MASK[index / 8];
+    let byte = character_alpha_mask_for_frame(frame_key)[index / 8];
     let mask = 1 << (index % 8);
 
     byte & mask != 0

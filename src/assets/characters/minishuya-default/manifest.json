@@ -22,17 +22,17 @@
       "loop": true
     },
     "dragging": {
-      "frames": ["frames/idle-01.png"],
+      "frames": ["frames/dragging-01.png"],
       "frameDurationMs": 700,
       "loop": true
     },
     "petting": {
-      "frames": ["frames/idle-01.png"],
+      "frames": ["frames/petting-01.png"],
       "frameDurationMs": 260,
       "loop": true
     },
     "sleepy": {
-      "frames": ["frames/idle-01.png"],
+      "frames": ["frames/sleepy-01.png"],
       "frameDurationMs": 900,
       "loop": true
     },

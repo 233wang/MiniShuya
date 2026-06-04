@@ -1,4 +1,7 @@
+import draggingFrame01 from "../../assets/characters/minishuya-default/frames/dragging-01.png";
 import idleFrame01 from "../../assets/characters/minishuya-default/frames/idle-01.png";
+import pettingFrame01 from "../../assets/characters/minishuya-default/frames/petting-01.png";
+import sleepyFrame01 from "../../assets/characters/minishuya-default/frames/sleepy-01.png";
 import manifest from "../../assets/characters/minishuya-default/manifest.json";
 import type { PetActionState } from "./petActionState";
 
@@ -36,7 +39,10 @@ export type PetCharacterManifest = {
 };
 
 const frameSources: Record<string, string> = {
+  "frames/dragging-01.png": draggingFrame01,
   "frames/idle-01.png": idleFrame01,
+  "frames/petting-01.png": pettingFrame01,
+  "frames/sleepy-01.png": sleepyFrame01,
 };
 
 function frameKey(path: string): string {

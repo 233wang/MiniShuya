@@ -1,6 +1,7 @@
 use crate::hit_test::{
-    current_pet_hit_regions, is_character_opaque_at, is_pet_interactive_point,
-    set_character_hit_region, should_ignore_cursor, HitPoint, HitRect, PetHitRegions,
+    current_pet_hit_regions, is_character_opaque_at, is_character_opaque_at_frame,
+    is_pet_interactive_point, set_character_hit_region, should_ignore_cursor, HitPoint, HitRect,
+    PetHitRegions,
 };
 
 fn regions(menu_visible: bool) -> PetHitRegions {
@@ -48,6 +49,19 @@ fn maps_display_coordinate_to_character_alpha_mask() {
     assert!(!is_character_opaque_at(
         HitPoint { x: 10, y: 10 },
         character
+    ));
+}
+
+#[test]
+fn uses_frame_specific_alpha_masks() {
+    let character = regions(false).character;
+    let point = HitPoint { x: 13, y: 86 };
+
+    assert!(!is_character_opaque_at_frame(point, character, "idle-01"));
+    assert!(is_character_opaque_at_frame(
+        point,
+        character,
+        "dragging-01"
     ));
 }
 
