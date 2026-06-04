@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Pet, type CharacterHitRegion } from "../features/pet/Pet";
+import { type CharacterHitRegion } from "../features/pet/characterAssets";
+import { Pet } from "../features/pet/Pet";
 
 export function App() {
   const handleDragStart = () => {
@@ -22,6 +23,10 @@ export function App() {
     void invoke("set_character_hit_region", { region });
   };
 
+  const handleCharacterFrameChange = (frameKey: string) => {
+    void invoke("set_current_character_frame", { frameKey });
+  };
+
   return (
     <main className="app-shell">
       <Pet
@@ -29,6 +34,7 @@ export function App() {
         onDragEnd={handleDragEnd}
         onExit={handleExit}
         onCharacterHitRegionChange={handleCharacterHitRegionChange}
+        onCharacterFrameChange={handleCharacterFrameChange}
         onMenuVisibilityChange={handleMenuVisibilityChange}
       />
     </main>

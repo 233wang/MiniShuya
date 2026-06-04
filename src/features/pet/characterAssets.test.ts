@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { actionForPetState, frameForAction, minishuyaDefaultCharacter } from "./characterAssets";
+import {
+  actionForPetState,
+  frameForAction,
+  minishuyaDefaultCharacter,
+  type PetCharacterActionId,
+} from "./characterAssets";
 
 describe("characterAssets", () => {
   it("maps pet action states to manifest actions", () => {
@@ -14,7 +19,7 @@ describe("characterAssets", () => {
       ...minishuyaDefaultCharacter,
       stateMap: {
         ...minishuyaDefaultCharacter.stateMap,
-        hover: "missing-action",
+        hover: "missing-action" as PetCharacterActionId,
       },
     };
 

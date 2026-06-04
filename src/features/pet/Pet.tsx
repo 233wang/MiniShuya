@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
-import { minishuyaDefaultCharacter, petCharacterImageFor } from "./characterAssets";
+import {
+  actionForPetState,
+  minishuyaDefaultCharacter,
+  type CharacterHitRegion,
+} from "./characterAssets";
 import {
   initialPetActionState,
   petActionClass,
   transitionPetActionState,
   type PetActionEvent,
 } from "./petActionState";
+import { useActionFrames } from "./useActionFrames";
 
 type PetProps = {
   onDragStart: () => void;
@@ -13,16 +18,10 @@ type PetProps = {
   onExit: () => void;
   onMenuVisibilityChange?: (visible: boolean) => void;
   onCharacterHitRegionChange?: (region: CharacterHitRegion) => void;
+  onCharacterFrameChange?: (frameKey: string) => void;
 };
 
 export const SLEEPY_AFTER_MS = 30_000;
-
-export type CharacterHitRegion = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
 
 export function Pet({
   onDragStart,
@@ -30,10 +29,13 @@ export function Pet({
   onExit,
   onMenuVisibilityChange,
   onCharacterHitRegionChange,
+  onCharacterFrameChange,
 }: PetProps) {
   const [actionState, setActionState] = useState(initialPetActionState);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const characterRef = useRef<HTMLImageElement>(null);
+  const currentAction = actionForPetState(minishuyaDefaultCharacter, actionState);
+  const { frame } = useActionFrames(currentAction);
 
   const dispatchAction = (event: PetActionEvent) => {
     setActionState((current) => {
@@ -92,6 +94,10 @@ export function Pet({
 
     return () => window.cancelAnimationFrame(animationFrame);
   }, [onCharacterHitRegionChange]);
+
+  useEffect(() => {
+    onCharacterFrameChange?.(frame.key);
+  }, [frame.key, onCharacterFrameChange]);
 
   const closeMenu = () => {
     setIsMenuOpen(false);
@@ -167,7 +173,7 @@ export function Pet({
       <img
         ref={characterRef}
         className="pet__character"
-        src={petCharacterImageFor(actionState)}
+        src={frame.src}
         width={minishuyaDefaultCharacter.size.width}
         height={minishuyaDefaultCharacter.size.height}
         alt="MiniShuya character"

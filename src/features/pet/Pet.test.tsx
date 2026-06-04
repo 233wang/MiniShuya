@@ -127,6 +127,15 @@ describe("Pet", () => {
     });
   });
 
+  it("reports the current rendered frame key", async () => {
+    const onCharacterFrameChange = vi.fn();
+    renderPet({ onCharacterFrameChange });
+
+    await waitFor(() => {
+      expect(onCharacterFrameChange).toHaveBeenCalledWith("idle-01");
+    });
+  });
+
   it("hides the exit menu when dragging starts", () => {
     renderPet();
 
