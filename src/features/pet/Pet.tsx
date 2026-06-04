@@ -17,6 +17,7 @@ type PetProps = {
   onDragEnd: () => void;
   onExit: () => void;
   systemIdleMillis: number;
+  isPrimaryMouseDown: boolean;
   onMenuVisibilityChange?: (visible: boolean) => void;
   onCharacterHitRegionChange?: (region: CharacterHitRegion) => void;
   onCharacterFrameChange?: (frameKey: string) => void;
@@ -30,6 +31,8 @@ type DragCandidate = {
   pointerId: number;
   x: number;
   y: number;
+  screenX: number;
+  screenY: number;
   dragging: boolean;
 };
 
@@ -38,6 +41,7 @@ export function Pet({
   onDragEnd,
   onExit,
   systemIdleMillis,
+  isPrimaryMouseDown,
   onMenuVisibilityChange,
   onCharacterHitRegionChange,
   onCharacterFrameChange,
@@ -58,6 +62,13 @@ export function Pet({
           : current;
       return transitionPetActionState(awakened, event);
     });
+  };
+
+  const pointerScreenPoint = (event: PointerEvent) => {
+    const screenX = Number.isFinite(event.screenX) ? event.screenX : event.clientX;
+    const screenY = Number.isFinite(event.screenY) ? event.screenY : event.clientY;
+
+    return { screenX, screenY };
   };
 
   useEffect(() => {
@@ -83,6 +94,12 @@ export function Pet({
 
     return () => window.clearInterval(interval);
   }, [actionState]);
+
+  useEffect(() => {
+    if (actionState === "dragging" && !isPrimaryMouseDown) {
+      stopDragging();
+    }
+  }, [actionState, isPrimaryMouseDown]);
 
   useEffect(() => {
     if (actionState !== "petting" && actionState !== "draggingRecover") {
@@ -178,6 +195,7 @@ export function Pet({
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
+      ...pointerScreenPoint(event),
       dragging: false,
     };
 
@@ -195,10 +213,13 @@ export function Pet({
     }
 
     if (candidate.dragging) {
-      const deltaX = Math.round(event.clientX - candidate.x);
-      const deltaY = Math.round(event.clientY - candidate.y);
+      const point = pointerScreenPoint(event);
+      const deltaX = Math.round(point.screenX - candidate.screenX);
+      const deltaY = Math.round(point.screenY - candidate.screenY);
       candidate.x = event.clientX;
       candidate.y = event.clientY;
+      candidate.screenX = point.screenX;
+      candidate.screenY = point.screenY;
 
       if (deltaX !== 0 || deltaY !== 0) {
         onDragMove({ deltaX, deltaY });
@@ -211,10 +232,13 @@ export function Pet({
       return;
     }
 
-    const deltaX = Math.round(event.clientX - candidate.x);
-    const deltaY = Math.round(event.clientY - candidate.y);
+    const point = pointerScreenPoint(event);
+    const deltaX = Math.round(point.screenX - candidate.screenX);
+    const deltaY = Math.round(point.screenY - candidate.screenY);
     candidate.x = event.clientX;
     candidate.y = event.clientY;
+    candidate.screenX = point.screenX;
+    candidate.screenY = point.screenY;
     candidate.dragging = true;
     setIsMenuOpen(false);
     onMenuVisibilityChange?.(false);

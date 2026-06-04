@@ -5,6 +5,7 @@ import { Pet } from "../features/pet/Pet";
 
 export function App() {
   const [systemIdleMillis, setSystemIdleMillis] = useState(0);
+  const [isPrimaryMouseDown, setIsPrimaryMouseDown] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -19,6 +20,26 @@ export function App() {
 
     updateSystemIdleMillis();
     const interval = window.setInterval(updateSystemIdleMillis, 1_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const updatePrimaryMouseDown = () => {
+      void invoke<boolean>("is_primary_mouse_down").then((isDown) => {
+        if (!cancelled) {
+          setIsPrimaryMouseDown(isDown);
+        }
+      });
+    };
+
+    updatePrimaryMouseDown();
+    const interval = window.setInterval(updatePrimaryMouseDown, 50);
 
     return () => {
       cancelled = true;
@@ -57,6 +78,7 @@ export function App() {
         onDragEnd={handleDragEnd}
         onExit={handleExit}
         systemIdleMillis={systemIdleMillis}
+        isPrimaryMouseDown={isPrimaryMouseDown}
         onCharacterHitRegionChange={handleCharacterHitRegionChange}
         onCharacterFrameChange={handleCharacterFrameChange}
         onMenuVisibilityChange={handleMenuVisibilityChange}

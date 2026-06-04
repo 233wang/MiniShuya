@@ -9,6 +9,7 @@ const renderPet = (props?: Partial<Parameters<typeof Pet>[0]>) =>
       onDragEnd={() => undefined}
       onExit={() => undefined}
       systemIdleMillis={0}
+      isPrimaryMouseDown={true}
       {...props}
     />,
   );
@@ -16,12 +17,14 @@ const renderPet = (props?: Partial<Parameters<typeof Pet>[0]>) =>
 const firePointerEvent = (
   element: Element,
   type: "pointerDown" | "pointerMove" | "pointerUp",
-  options: { clientX: number; clientY: number; pointerId: number },
+  options: { clientX: number; clientY: number; pointerId: number; screenX?: number; screenY?: number },
 ) => {
   const event = createEvent[type](element);
   Object.defineProperties(event, {
     clientX: { value: options.clientX },
     clientY: { value: options.clientY },
+    screenX: { value: options.screenX ?? options.clientX },
+    screenY: { value: options.screenY ?? options.clientY },
     pointerId: { value: options.pointerId },
   });
   fireEvent(element, event);
@@ -32,11 +35,15 @@ const dragPastThreshold = () => {
   firePointerEvent(character, "pointerDown", {
     clientX: 10,
     clientY: 10,
+    screenX: 100,
+    screenY: 100,
     pointerId: 1,
   });
   firePointerEvent(character, "pointerMove", {
     clientX: 24,
     clientY: 10,
+    screenX: 128,
+    screenY: 100,
     pointerId: 1,
   });
   return character;
@@ -67,6 +74,25 @@ describe("Pet", () => {
 
     dragPastThreshold();
 
+    expect(onDragMove).toHaveBeenCalledWith({ deltaX: 28, deltaY: 0 });
+  });
+
+  it("falls back to client coordinates when screen coordinates are unavailable", () => {
+    const onDragMove = vi.fn();
+    renderPet({ onDragMove });
+
+    const character = screen.getByRole("img", { name: "MiniShuya character" });
+    firePointerEvent(character, "pointerDown", {
+      clientX: 10,
+      clientY: 10,
+      pointerId: 1,
+    });
+    firePointerEvent(character, "pointerMove", {
+      clientX: 24,
+      clientY: 10,
+      pointerId: 1,
+    });
+
     expect(onDragMove).toHaveBeenCalledWith({ deltaX: 14, deltaY: 0 });
   });
 
@@ -77,6 +103,8 @@ describe("Pet", () => {
     firePointerEvent(screen.getByRole("img", { name: "MiniShuya character" }), "pointerDown", {
       clientX: 10,
       clientY: 10,
+      screenX: 100,
+      screenY: 100,
       pointerId: 1,
     });
 
@@ -93,6 +121,30 @@ describe("Pet", () => {
     dragPastThreshold();
     const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
     fireEvent.pointerUp(window);
+
+    await waitFor(() => {
+      expect(pet).toHaveClass("pet--draggingRecover");
+    });
+    expect(onDragEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses drag recovery when the system primary mouse button is released", async () => {
+    const onDragEnd = vi.fn();
+    const { rerender } = renderPet({ onDragEnd, isPrimaryMouseDown: true });
+
+    dragPastThreshold();
+    const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
+    expect(pet).toHaveClass("pet--dragging");
+
+    rerender(
+      <Pet
+        onDragMove={() => undefined}
+        onDragEnd={onDragEnd}
+        onExit={() => undefined}
+        systemIdleMillis={0}
+        isPrimaryMouseDown={false}
+      />,
+    );
 
     await waitFor(() => {
       expect(pet).toHaveClass("pet--draggingRecover");
@@ -270,6 +322,7 @@ describe("Pet", () => {
         onDragEnd={() => undefined}
         onExit={() => undefined}
         systemIdleMillis={60_000}
+        isPrimaryMouseDown={true}
       />,
     );
 
@@ -288,6 +341,7 @@ describe("Pet", () => {
         onDragEnd={() => undefined}
         onExit={() => undefined}
         systemIdleMillis={0}
+        isPrimaryMouseDown={true}
       />,
     );
 

@@ -16,6 +16,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             window::exit_app,
+            window::is_primary_mouse_down,
             window::load_window_position,
             window::move_window_by,
             window::save_current_position,

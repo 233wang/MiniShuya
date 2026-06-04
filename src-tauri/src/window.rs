@@ -64,6 +64,11 @@ pub fn system_idle_millis() -> Result<u64, String> {
     system_idle_millis_impl()
 }
 
+#[tauri::command]
+pub fn is_primary_mouse_down() -> bool {
+    is_primary_mouse_down_impl()
+}
+
 #[cfg(windows)]
 fn system_idle_millis_impl() -> Result<u64, String> {
     use std::mem::size_of;
@@ -87,6 +92,18 @@ fn system_idle_millis_impl() -> Result<u64, String> {
 #[cfg(not(windows))]
 fn system_idle_millis_impl() -> Result<u64, String> {
     Ok(0)
+}
+
+#[cfg(windows)]
+fn is_primary_mouse_down_impl() -> bool {
+    use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON};
+
+    unsafe { (GetAsyncKeyState(VK_LBUTTON.0 as i32) as u16 & 0x8000) != 0 }
+}
+
+#[cfg(not(windows))]
+fn is_primary_mouse_down_impl() -> bool {
+    false
 }
 
 #[tauri::command]
