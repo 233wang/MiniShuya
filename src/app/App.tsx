@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Pet } from "../features/pet/Pet";
+import { Pet, type CharacterHitRegion } from "../features/pet/Pet";
 
 export function App() {
   const handleDragStart = () => {
@@ -18,12 +18,17 @@ export function App() {
     void invoke("set_menu_hit_region_visible", { visible });
   };
 
+  const handleCharacterHitRegionChange = (region: CharacterHitRegion) => {
+    void invoke("set_character_hit_region", { region });
+  };
+
   return (
     <main className="app-shell">
       <Pet
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onExit={handleExit}
+        onCharacterHitRegionChange={handleCharacterHitRegionChange}
         onMenuVisibilityChange={handleMenuVisibilityChange}
       />
     </main>

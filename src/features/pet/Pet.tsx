@@ -1,4 +1,4 @@
-import { useEffect, useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { minishuyaDefaultCharacter, petCharacterImageFor } from "./characterAssets";
 import {
   initialPetActionState,
@@ -12,13 +12,28 @@ type PetProps = {
   onDragEnd: () => void;
   onExit: () => void;
   onMenuVisibilityChange?: (visible: boolean) => void;
+  onCharacterHitRegionChange?: (region: CharacterHitRegion) => void;
 };
 
 export const SLEEPY_AFTER_MS = 30_000;
 
-export function Pet({ onDragStart, onDragEnd, onExit, onMenuVisibilityChange }: PetProps) {
+export type CharacterHitRegion = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export function Pet({
+  onDragStart,
+  onDragEnd,
+  onExit,
+  onMenuVisibilityChange,
+  onCharacterHitRegionChange,
+}: PetProps) {
   const [actionState, setActionState] = useState(initialPetActionState);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const characterRef = useRef<HTMLImageElement>(null);
 
   const dispatchAction = (event: PetActionEvent) => {
     setActionState((current) => {
@@ -37,6 +52,46 @@ export function Pet({ onDragStart, onDragEnd, onExit, onMenuVisibilityChange }: 
 
     return () => window.clearTimeout(timeout);
   }, [actionState]);
+
+  useEffect(() => {
+    if (!onCharacterHitRegionChange) {
+      return undefined;
+    }
+
+    let animationFrame = 0;
+    let previousRegion: CharacterHitRegion | undefined;
+
+    const reportRegion = () => {
+      const character = characterRef.current;
+      if (character) {
+        const rect = character.getBoundingClientRect();
+        const scale = window.devicePixelRatio || 1;
+        const region = {
+          x: Math.round(rect.left * scale),
+          y: Math.round(rect.top * scale),
+          width: Math.round(rect.width * scale),
+          height: Math.round(rect.height * scale),
+        };
+
+        if (
+          !previousRegion ||
+          previousRegion.x !== region.x ||
+          previousRegion.y !== region.y ||
+          previousRegion.width !== region.width ||
+          previousRegion.height !== region.height
+        ) {
+          previousRegion = region;
+          onCharacterHitRegionChange(region);
+        }
+      }
+
+      animationFrame = window.requestAnimationFrame(reportRegion);
+    };
+
+    reportRegion();
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [onCharacterHitRegionChange]);
 
   const closeMenu = () => {
     setIsMenuOpen(false);
@@ -110,6 +165,7 @@ export function Pet({ onDragStart, onDragEnd, onExit, onMenuVisibilityChange }: 
       onPointerCancel={stopDragging}
     >
       <img
+        ref={characterRef}
         className="pet__character"
         src={petCharacterImageFor(actionState)}
         width={minishuyaDefaultCharacter.size.width}

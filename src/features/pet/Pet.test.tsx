@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Pet } from "./Pet";
 
@@ -98,6 +98,33 @@ describe("Pet", () => {
 
     expect(onMenuVisibilityChange).toHaveBeenNthCalledWith(1, true);
     expect(onMenuVisibilityChange).toHaveBeenNthCalledWith(2, false);
+  });
+
+  it("reports the rendered character hit region", async () => {
+    const onCharacterHitRegionChange = vi.fn();
+    renderPet({ onCharacterHitRegionChange });
+
+    const character = screen.getByRole("img", { name: "MiniShuya character" });
+    vi.spyOn(character, "getBoundingClientRect").mockReturnValue({
+      x: 12.4,
+      y: 34.2,
+      left: 12.4,
+      top: 34.2,
+      right: 163.4,
+      bottom: 259.2,
+      width: 151,
+      height: 225,
+      toJSON: () => undefined,
+    });
+
+    await waitFor(() => {
+      expect(onCharacterHitRegionChange).toHaveBeenCalledWith({
+        x: 12,
+        y: 34,
+        width: 151,
+        height: 225,
+      });
+    });
   });
 
   it("hides the exit menu when dragging starts", () => {

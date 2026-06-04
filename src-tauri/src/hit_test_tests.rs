@@ -1,5 +1,6 @@
 use crate::hit_test::{
-    is_character_opaque_at, is_pet_interactive_point, HitPoint, HitRect, PetHitRegions,
+    current_pet_hit_regions, is_character_opaque_at, is_pet_interactive_point,
+    set_character_hit_region, should_ignore_cursor, HitPoint, HitRect, PetHitRegions,
 };
 
 fn regions(menu_visible: bool) -> PetHitRegions {
@@ -76,4 +77,56 @@ fn treats_rect_right_and_bottom_edges_as_outside() {
         HitPoint { x: 154, y: 227 },
         regions(false).character
     ));
+}
+
+#[test]
+fn ignores_cursor_on_transparent_pixels_without_cropping_visuals() {
+    assert!(should_ignore_cursor(
+        HitPoint { x: 10, y: 10 },
+        regions(false)
+    ));
+    assert!(should_ignore_cursor(
+        HitPoint { x: 220, y: 210 },
+        regions(false)
+    ));
+    assert!(!should_ignore_cursor(
+        HitPoint { x: 80, y: 120 },
+        regions(false)
+    ));
+}
+
+#[test]
+fn does_not_ignore_cursor_on_visible_menu() {
+    assert!(should_ignore_cursor(
+        HitPoint { x: 200, y: 60 },
+        regions(false)
+    ));
+    assert!(!should_ignore_cursor(
+        HitPoint { x: 200, y: 60 },
+        regions(true)
+    ));
+}
+
+#[test]
+fn uses_latest_reported_character_hit_region() {
+    set_character_hit_region(HitRect {
+        x: 100,
+        y: 100,
+        width: 150,
+        height: 225,
+    });
+
+    let regions = current_pet_hit_regions(false);
+
+    assert_eq!(
+        regions.character,
+        HitRect {
+            x: 100,
+            y: 100,
+            width: 150,
+            height: 225,
+        }
+    );
+    assert!(should_ignore_cursor(HitPoint { x: 80, y: 120 }, regions));
+    assert!(!should_ignore_cursor(HitPoint { x: 176, y: 218 }, regions));
 }

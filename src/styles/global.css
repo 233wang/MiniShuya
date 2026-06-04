@@ -35,7 +35,6 @@ button {
   border: 0;
   padding: 0;
   background: transparent;
-  cursor: grab;
   animation: pet-breathe 2.8s ease-in-out infinite;
   transform-origin: 50% 100%;
   appearance: none;
@@ -80,10 +79,15 @@ button {
   object-position: center bottom;
   user-select: none;
   -webkit-user-drag: none;
+  cursor: grab;
   will-change: transform, filter;
   transition:
     filter 180ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pet__character:active {
+  cursor: grabbing;
 }
 
 .pet--hover .pet__character {

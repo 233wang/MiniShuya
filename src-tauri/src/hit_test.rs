@@ -1,10 +1,20 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    sync::atomic::{AtomicBool, AtomicI32, Ordering},
+    thread,
+    time::Duration,
+};
 
 use crate::character_alpha_mask::{
     CHARACTER_ALPHA_HEIGHT, CHARACTER_ALPHA_MASK, CHARACTER_ALPHA_WIDTH,
 };
 
 static MENU_HIT_REGION_VISIBLE: AtomicBool = AtomicBool::new(false);
+static PET_CURSOR_MONITOR_STARTED: AtomicBool = AtomicBool::new(false);
+static PET_WINDOW_IGNORES_CURSOR: AtomicBool = AtomicBool::new(false);
+static CHARACTER_HIT_X: AtomicI32 = AtomicI32::new(4);
+static CHARACTER_HIT_Y: AtomicI32 = AtomicI32::new(2);
+static CHARACTER_HIT_WIDTH: AtomicI32 = AtomicI32::new(150);
+static CHARACTER_HIT_HEIGHT: AtomicI32 = AtomicI32::new(225);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HitPoint {
@@ -12,7 +22,8 @@ pub struct HitPoint {
     pub y: i32,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HitRect {
     pub x: i32,
     pub y: i32,
@@ -61,12 +72,40 @@ pub fn is_pet_interactive_point(point: HitPoint, regions: PetHitRegions) -> bool
         || (regions.menu_visible && regions.menu.contains(point))
 }
 
+pub fn should_ignore_cursor(point: HitPoint, regions: PetHitRegions) -> bool {
+    !is_pet_interactive_point(point, regions)
+}
+
 pub fn set_menu_hit_region_visible(visible: bool) {
     MENU_HIT_REGION_VISIBLE.store(visible, Ordering::Relaxed);
 }
 
+pub fn set_character_hit_region(region: HitRect) {
+    if region.width <= 0 || region.height <= 0 {
+        return;
+    }
+
+    CHARACTER_HIT_X.store(region.x, Ordering::Relaxed);
+    CHARACTER_HIT_Y.store(region.y, Ordering::Relaxed);
+    CHARACTER_HIT_WIDTH.store(region.width, Ordering::Relaxed);
+    CHARACTER_HIT_HEIGHT.store(region.height, Ordering::Relaxed);
+}
+
 pub fn is_menu_hit_region_visible() -> bool {
     MENU_HIT_REGION_VISIBLE.load(Ordering::Relaxed)
+}
+
+pub fn current_pet_hit_regions(menu_visible: bool) -> PetHitRegions {
+    PetHitRegions {
+        character: HitRect {
+            x: CHARACTER_HIT_X.load(Ordering::Relaxed),
+            y: CHARACTER_HIT_Y.load(Ordering::Relaxed),
+            width: CHARACTER_HIT_WIDTH.load(Ordering::Relaxed),
+            height: CHARACTER_HIT_HEIGHT.load(Ordering::Relaxed),
+        },
+        menu: PetHitRegions::default().menu,
+        menu_visible,
+    }
 }
 
 pub fn is_character_opaque_at(point: HitPoint, display_rect: HitRect) -> bool {
@@ -108,6 +147,7 @@ pub fn install_pet_hit_test(window: &tauri::WebviewWindow) -> Result<(), String>
     let hwnd = window
         .hwnd()
         .map_err(|error| format!("failed to read native window handle: {error}"))?;
+    start_cursor_monitor(window.clone(), hwnd);
     unsafe {
         if SetWindowSubclass(hwnd, Some(pet_hit_test_proc), PET_HIT_TEST_SUBCLASS_ID, 0).as_bool() {
             Ok(())
@@ -140,10 +180,7 @@ unsafe extern "system" fn pet_hit_test_proc(
 
     match msg {
         WM_NCHITTEST => {
-            let regions = PetHitRegions {
-                menu_visible: is_menu_hit_region_visible(),
-                ..PetHitRegions::default()
-            };
+            let regions = current_pet_hit_regions(is_menu_hit_region_visible());
             let mut point = POINT {
                 x: signed_low_word(lparam.0),
                 y: signed_high_word(lparam.0),
@@ -153,7 +190,7 @@ unsafe extern "system" fn pet_hit_test_proc(
                 return DefSubclassProc(hwnd, msg, wparam, lparam);
             }
 
-            if is_pet_interactive_point(
+            if !should_ignore_cursor(
                 HitPoint {
                     x: point.x,
                     y: point.y,
@@ -177,4 +214,73 @@ fn signed_low_word(value: isize) -> i32 {
 #[cfg(windows)]
 fn signed_high_word(value: isize) -> i32 {
     ((value >> 16) as u16) as i16 as i32
+}
+
+#[cfg(windows)]
+fn start_cursor_monitor(window: tauri::WebviewWindow, hwnd: windows::Win32::Foundation::HWND) {
+    if PET_CURSOR_MONITOR_STARTED.swap(true, Ordering::Relaxed) {
+        return;
+    }
+
+    let hwnd = hwnd.0 as isize;
+    thread::spawn(move || loop {
+        let hwnd = windows::Win32::Foundation::HWND(hwnd as *mut core::ffi::c_void);
+        update_cursor_passthrough(&window, hwnd);
+        thread::sleep(Duration::from_millis(16));
+    });
+}
+
+#[cfg(not(windows))]
+fn start_cursor_monitor() {}
+
+#[cfg(windows)]
+fn update_cursor_passthrough(
+    window: &tauri::WebviewWindow,
+    hwnd: windows::Win32::Foundation::HWND,
+) {
+    unsafe {
+        let Some(point) = cursor_point_in_window(hwnd) else {
+            set_window_cursor_passthrough(window, false);
+            return;
+        };
+
+        let regions = current_pet_hit_regions(is_menu_hit_region_visible());
+        set_window_cursor_passthrough(window, should_ignore_cursor(point, regions));
+    }
+}
+
+#[cfg(windows)]
+unsafe fn cursor_point_in_window(hwnd: windows::Win32::Foundation::HWND) -> Option<HitPoint> {
+    use windows::Win32::{
+        Foundation::{POINT, RECT},
+        UI::WindowsAndMessaging::{GetCursorPos, GetWindowRect},
+    };
+
+    let mut cursor = POINT::default();
+    let mut window = RECT::default();
+    if GetCursorPos(&mut cursor).is_err() || GetWindowRect(hwnd, &mut window).is_err() {
+        return None;
+    }
+
+    if cursor.x < window.left
+        || cursor.x >= window.right
+        || cursor.y < window.top
+        || cursor.y >= window.bottom
+    {
+        return None;
+    }
+
+    Some(HitPoint {
+        x: cursor.x - window.left,
+        y: cursor.y - window.top,
+    })
+}
+
+#[cfg(windows)]
+fn set_window_cursor_passthrough(window: &tauri::WebviewWindow, should_ignore: bool) {
+    if PET_WINDOW_IGNORES_CURSOR.swap(should_ignore, Ordering::Relaxed) == should_ignore {
+        return;
+    }
+
+    let _ = window.set_ignore_cursor_events(should_ignore);
 }
