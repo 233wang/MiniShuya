@@ -35,16 +35,37 @@ describe("Pet", () => {
     const onDragStart = vi.fn();
     renderPet({ onDragStart });
 
-    fireEvent.pointerDown(screen.getByRole("img", { name: "MiniShuya character" }));
+    const character = screen.getByRole("img", { name: "MiniShuya character" });
+    fireEvent.pointerDown(character, { clientX: 10, clientY: 10, pointerId: 1 });
+    fireEvent.pointerMove(character, { clientX: 24, clientY: 10, pointerId: 1 });
 
     expect(onDragStart).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not start dragging while the pointer is held still", () => {
+    const onDragStart = vi.fn();
+    renderPet({ onDragStart });
+
+    fireEvent.pointerDown(screen.getByRole("img", { name: "MiniShuya character" }), {
+      clientX: 10,
+      clientY: 10,
+      pointerId: 1,
+    });
+
+    expect(onDragStart).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "MiniShuya desktop pet" })).not.toHaveClass(
+      "pet--dragging",
+    );
   });
 
   it("calls onDragEnd when pointer drag ends", () => {
     const onDragEnd = vi.fn();
     renderPet({ onDragEnd });
 
-    fireEvent.pointerUp(screen.getByRole("button", { name: "MiniShuya desktop pet" }));
+    const character = screen.getByRole("img", { name: "MiniShuya character" });
+    fireEvent.pointerDown(character, { clientX: 10, clientY: 10, pointerId: 1 });
+    fireEvent.pointerMove(character, { clientX: 24, clientY: 10, pointerId: 1 });
+    fireEvent.pointerUp(character, { clientX: 24, clientY: 10, pointerId: 1 });
 
     expect(onDragEnd).toHaveBeenCalledTimes(1);
   });
@@ -140,8 +161,10 @@ describe("Pet", () => {
     renderPet();
 
     const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
+    const character = screen.getByRole("img", { name: "MiniShuya character" });
     fireEvent.contextMenu(pet);
-    fireEvent.pointerDown(pet);
+    fireEvent.pointerDown(character, { clientX: 10, clientY: 10, pointerId: 1 });
+    fireEvent.pointerMove(character, { clientX: 24, clientY: 10, pointerId: 1 });
 
     expect(screen.queryByRole("menu", { name: "MiniShuya menu" })).not.toBeInTheDocument();
   });
@@ -165,12 +188,30 @@ describe("Pet", () => {
   });
 
   it("enters petting state when the character image is double clicked", () => {
+    const onDragStart = vi.fn();
+    renderPet({ onDragStart });
+
+    const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
+    fireEvent.doubleClick(screen.getByRole("img", { name: "MiniShuya character" }));
+
+    expect(pet).toHaveClass("pet--petting");
+    expect(onDragStart).not.toHaveBeenCalled();
+  });
+
+  it("returns to idle after the petting animation finishes", () => {
+    vi.useFakeTimers();
     renderPet();
 
     const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
     fireEvent.doubleClick(screen.getByRole("img", { name: "MiniShuya character" }));
 
     expect(pet).toHaveClass("pet--petting");
+    act(() => {
+      vi.advanceTimersByTime(900);
+    });
+
+    expect(pet).toHaveClass("pet--idle");
+    vi.useRealTimers();
   });
 
   it("enters sleepy state after a quiet period", () => {
@@ -179,7 +220,12 @@ describe("Pet", () => {
 
     const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
     act(() => {
-      vi.advanceTimersByTime(30_000);
+      vi.advanceTimersByTime(59_000);
+    });
+
+    expect(pet).not.toHaveClass("pet--sleepy");
+    act(() => {
+      vi.advanceTimersByTime(1_000);
     });
 
     expect(pet).toHaveClass("pet--sleepy");

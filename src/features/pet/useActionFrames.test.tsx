@@ -13,6 +13,11 @@ const action = (id: PetCharacterAction["id"], frameDurationMs = 100): PetCharact
   ],
 });
 
+const oneShotAction = (id: PetCharacterAction["id"], frameDurationMs = 100): PetCharacterAction => ({
+  ...action(id, frameDurationMs),
+  loop: false,
+});
+
 afterEach(() => {
   vi.useRealTimers();
 });
@@ -55,5 +60,35 @@ describe("useActionFrames", () => {
     rerender({ currentAction: action("petting", 100) });
 
     expect(result.current.frame.key).toBe("petting-01");
+  });
+
+  it("holds on the final frame for non-looping actions", () => {
+    vi.useFakeTimers();
+
+    const { result } = renderHook(() => useActionFrames(oneShotAction("petting", 100)));
+
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(result.current.frame.key).toBe("petting-02");
+  });
+
+  it("restarts a non-looping action when reset key changes", () => {
+    vi.useFakeTimers();
+
+    const { result, rerender } = renderHook(
+      ({ resetKey }) => useActionFrames(oneShotAction("sleepy", 100), resetKey),
+      { initialProps: { resetKey: 0 } },
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(result.current.frame.key).toBe("sleepy-02");
+
+    rerender({ resetKey: 1 });
+
+    expect(result.current.frame.key).toBe("sleepy-01");
   });
 });

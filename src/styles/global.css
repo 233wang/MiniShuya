@@ -41,31 +41,25 @@ button {
   outline: 0;
 }
 
-.pet:active,
-.pet--dragging {
+.pet:active {
   cursor: grabbing;
-  animation-duration: 1.2s;
 }
 
 .pet--hover {
   filter: saturate(1.04) brightness(1.03);
 }
 
-.pet--pressed {
-  transform: translateY(2px) scaleY(0.98);
-}
-
-.pet--petting {
-  animation-name: pet-happy-bounce;
-  animation-duration: 0.7s;
-}
-
 .pet--menu-open {
   animation-play-state: paused;
 }
 
+.pet--dragging,
+.pet--petting,
 .pet--sleepy {
-  animation-duration: 4.6s;
+  animation: none;
+}
+
+.pet--sleepy {
   filter: saturate(0.9) brightness(0.96);
 }
 
@@ -94,20 +88,8 @@ button {
   transform: translateY(-3px);
 }
 
-.pet--pressed .pet__character {
-  transform: translateY(2px) scale(0.985);
-}
-
-.pet--dragging .pet__character {
-  transform: translateY(-2px) rotate(-1deg);
-}
-
 .pet--petting .pet__character {
   filter: brightness(1.05) saturate(1.07);
-}
-
-.pet--sleepy .pet__character {
-  transform: translateY(2px) scaleY(0.99);
 }
 
 .pet-menu {
@@ -158,18 +140,5 @@ button {
   }
   50% {
     transform: translateY(-8px) rotate(1deg);
-  }
-}
-
-@keyframes pet-happy-bounce {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  35% {
-    transform: translateY(-10px) rotate(-2deg);
-  }
-  70% {
-    transform: translateY(-4px) rotate(2deg);
   }
 }

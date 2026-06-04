@@ -21,7 +21,16 @@ type PetProps = {
   onCharacterFrameChange?: (frameKey: string) => void;
 };
 
-export const SLEEPY_AFTER_MS = 30_000;
+export const SLEEPY_AFTER_MS = 60_000;
+const DRAG_START_DISTANCE_PX = 8;
+const SLEEPY_REPEAT_MS = 5_000;
+
+type DragCandidate = {
+  pointerId: number;
+  x: number;
+  y: number;
+  dragging: boolean;
+};
 
 export function Pet({
   onDragStart,
@@ -33,9 +42,11 @@ export function Pet({
 }: PetProps) {
   const [actionState, setActionState] = useState(initialPetActionState);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [sleepyCycleKey, setSleepyCycleKey] = useState(0);
   const characterRef = useRef<HTMLImageElement>(null);
+  const dragCandidateRef = useRef<DragCandidate | null>(null);
   const currentAction = actionForPetState(minishuyaDefaultCharacter, actionState);
-  const { frame } = useActionFrames(currentAction);
+  const { frame } = useActionFrames(currentAction, sleepyCycleKey);
 
   const dispatchAction = (event: PetActionEvent) => {
     setActionState((current) => {
@@ -54,6 +65,31 @@ export function Pet({
 
     return () => window.clearTimeout(timeout);
   }, [actionState]);
+
+  useEffect(() => {
+    if (actionState !== "sleepy") {
+      return undefined;
+    }
+
+    setSleepyCycleKey((current) => current + 1);
+    const interval = window.setInterval(() => {
+      setSleepyCycleKey((current) => current + 1);
+    }, SLEEPY_REPEAT_MS);
+
+    return () => window.clearInterval(interval);
+  }, [actionState]);
+
+  useEffect(() => {
+    if (actionState !== "petting") {
+      return undefined;
+    }
+
+    const timeout = window.setTimeout(() => {
+      dispatchAction({ type: "PETTING_END" });
+    }, currentAction.frames.length * currentAction.frameDurationMs);
+
+    return () => window.clearTimeout(timeout);
+  }, [actionState, currentAction.frameDurationMs, currentAction.frames.length]);
 
   useEffect(() => {
     if (!onCharacterHitRegionChange) {
@@ -110,14 +146,8 @@ export function Pet({
     onDragEnd();
   };
 
-  const startDragging = () => {
-    setIsMenuOpen(false);
-    onMenuVisibilityChange?.(false);
-    dispatchAction({ type: "DRAG_START" });
-    onDragStart();
-  };
-
   const startPetting = () => {
+    dragCandidateRef.current = null;
     setIsMenuOpen(false);
     onMenuVisibilityChange?.(false);
     dispatchAction({ type: "PETTING_START" });
@@ -127,18 +157,58 @@ export function Pet({
     event.stopPropagation();
     setIsMenuOpen(false);
     onMenuVisibilityChange?.(false);
+    dragCandidateRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      dragging: false,
+    };
+
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture is best-effort in the test environment.
+    }
+  };
+
+  const handleCharacterPointerMove = (event: PointerEvent) => {
+    const candidate = dragCandidateRef.current;
+    if (!candidate || candidate.pointerId !== event.pointerId || candidate.dragging) {
+      return;
+    }
+
+    const distance = Math.hypot(event.clientX - candidate.x, event.clientY - candidate.y);
+    if (distance < DRAG_START_DISTANCE_PX) {
+      return;
+    }
+
+    candidate.dragging = true;
+    setIsMenuOpen(false);
+    onMenuVisibilityChange?.(false);
     dispatchAction({ type: "DRAG_START" });
     onDragStart();
   };
 
-  const handlePointerLeave = () => {
-    if (actionState === "dragging") {
+  const handleCharacterPointerUp = (event: PointerEvent) => {
+    const candidate = dragCandidateRef.current;
+    dragCandidateRef.current = null;
+
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture is best-effort in the test environment.
+    }
+
+    if (candidate?.dragging) {
       stopDragging();
       return;
     }
 
-    if (actionState === "petting") {
-      dispatchAction({ type: "PETTING_END" });
+    dispatchAction({ type: "POINTER_UP" });
+  };
+
+  const handlePointerLeave = () => {
+    if (actionState === "dragging" || actionState === "petting") {
       return;
     }
 
@@ -166,9 +236,6 @@ export function Pet({
           closeMenu();
         }
       }}
-      onPointerDown={startDragging}
-      onPointerUp={stopDragging}
-      onPointerCancel={stopDragging}
     >
       <img
         ref={characterRef}
@@ -183,6 +250,9 @@ export function Pet({
         }}
         onDoubleClick={startPetting}
         onPointerDown={handleCharacterPointerDown}
+        onPointerMove={handleCharacterPointerMove}
+        onPointerUp={handleCharacterPointerUp}
+        onPointerCancel={handleCharacterPointerUp}
       />
       {isMenuOpen ? (
         <span

@@ -6,12 +6,12 @@ type UseActionFramesResult = {
   frameIndex: number;
 };
 
-export function useActionFrames(action: PetCharacterAction): UseActionFramesResult {
+export function useActionFrames(action: PetCharacterAction, resetKey = 0): UseActionFramesResult {
   const [frameIndex, setFrameIndex] = useState(0);
 
   useEffect(() => {
     setFrameIndex(0);
-  }, [action.id]);
+  }, [action.id, resetKey]);
 
   useEffect(() => {
     if (action.frames.length <= 1) {

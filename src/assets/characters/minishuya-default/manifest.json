@@ -33,7 +33,7 @@
         "frames/dragging-08.png"
       ],
       "frameDurationMs": 95,
-      "loop": true
+      "loop": false
     },
     "petting": {
       "frames": [
@@ -47,7 +47,7 @@
         "frames/petting-08.png"
       ],
       "frameDurationMs": 110,
-      "loop": true
+      "loop": false
     },
     "sleepy": {
       "frames": [
@@ -60,8 +60,8 @@
         "frames/sleepy-07.png",
         "frames/sleepy-08.png"
       ],
-      "frameDurationMs": 140,
-      "loop": true
+      "frameDurationMs": 260,
+      "loop": false
     },
     "menuOpen": {
       "frames": ["frames/idle-01.png"],
