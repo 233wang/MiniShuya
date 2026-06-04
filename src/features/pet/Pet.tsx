@@ -17,7 +17,7 @@ type PetProps = {
   onDragEnd: () => void;
   onExit: () => void;
   systemIdleMillis: number;
-  isPrimaryMouseDown: boolean;
+  readPrimaryMouseDown: () => boolean | Promise<boolean>;
   onMenuVisibilityChange?: (visible: boolean) => void;
   onCharacterHitRegionChange?: (region: CharacterHitRegion) => void;
   onCharacterFrameChange?: (frameKey: string) => void;
@@ -41,7 +41,7 @@ export function Pet({
   onDragEnd,
   onExit,
   systemIdleMillis,
-  isPrimaryMouseDown,
+  readPrimaryMouseDown,
   onMenuVisibilityChange,
   onCharacterHitRegionChange,
   onCharacterFrameChange,
@@ -96,10 +96,28 @@ export function Pet({
   }, [actionState]);
 
   useEffect(() => {
-    if (actionState === "dragging" && !isPrimaryMouseDown) {
-      stopDragging();
+    if (actionState !== "dragging") {
+      return undefined;
     }
-  }, [actionState, isPrimaryMouseDown]);
+
+    let cancelled = false;
+
+    const pollPrimaryMouse = () => {
+      void Promise.resolve(readPrimaryMouseDown()).then((isDown) => {
+        if (!cancelled && !isDown) {
+          stopDragging();
+        }
+      });
+    };
+
+    pollPrimaryMouse();
+    const interval = window.setInterval(pollPrimaryMouse, 40);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [actionState, readPrimaryMouseDown]);
 
   useEffect(() => {
     if (actionState !== "petting" && actionState !== "draggingRecover") {
@@ -167,7 +185,7 @@ export function Pet({
 
   const stopDragging = () => {
     const candidate = dragCandidateRef.current;
-    if (!candidate?.dragging) {
+    if (!candidate?.dragging && actionState !== "dragging") {
       return;
     }
 
@@ -248,7 +266,6 @@ export function Pet({
 
   const handleCharacterPointerUp = (event: PointerEvent) => {
     const candidate = dragCandidateRef.current;
-    dragCandidateRef.current = null;
 
     try {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -261,6 +278,7 @@ export function Pet({
       return;
     }
 
+    dragCandidateRef.current = null;
     dispatchAction({ type: "POINTER_UP" });
   };
 

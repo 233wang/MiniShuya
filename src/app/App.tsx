@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { type CharacterHitRegion } from "../features/pet/characterAssets";
 import { Pet } from "../features/pet/Pet";
 
 export function App() {
   const [systemIdleMillis, setSystemIdleMillis] = useState(0);
-  const [isPrimaryMouseDown, setIsPrimaryMouseDown] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,49 +26,31 @@ export function App() {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const updatePrimaryMouseDown = () => {
-      void invoke<boolean>("is_primary_mouse_down").then((isDown) => {
-        if (!cancelled) {
-          setIsPrimaryMouseDown(isDown);
-        }
-      });
-    };
-
-    updatePrimaryMouseDown();
-    const interval = window.setInterval(updatePrimaryMouseDown, 50);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
+  const handleDragMove = useCallback((delta: { deltaX: number; deltaY: number }) => {
+    void invoke("move_window_by", delta);
   }, []);
 
-  const handleDragMove = (delta: { deltaX: number; deltaY: number }) => {
-    void invoke("move_window_by", delta);
-  };
-
-  const handleDragEnd = () => {
+  const handleDragEnd = useCallback(() => {
     void invoke("save_current_position");
-  };
+  }, []);
 
-  const handleExit = () => {
+  const handleExit = useCallback(() => {
     void invoke("exit_app");
-  };
+  }, []);
 
-  const handleMenuVisibilityChange = (visible: boolean) => {
+  const handleMenuVisibilityChange = useCallback((visible: boolean) => {
     void invoke("set_menu_hit_region_visible", { visible });
-  };
+  }, []);
 
-  const handleCharacterHitRegionChange = (region: CharacterHitRegion) => {
+  const handleCharacterHitRegionChange = useCallback((region: CharacterHitRegion) => {
     void invoke("set_character_hit_region", { region });
-  };
+  }, []);
 
-  const handleCharacterFrameChange = (frameKey: string) => {
+  const handleCharacterFrameChange = useCallback((frameKey: string) => {
     void invoke("set_current_character_frame", { frameKey });
-  };
+  }, []);
+
+  const readPrimaryMouseDown = useCallback(() => invoke<boolean>("is_primary_mouse_down"), []);
 
   return (
     <main className="app-shell">
@@ -78,7 +59,7 @@ export function App() {
         onDragEnd={handleDragEnd}
         onExit={handleExit}
         systemIdleMillis={systemIdleMillis}
-        isPrimaryMouseDown={isPrimaryMouseDown}
+        readPrimaryMouseDown={readPrimaryMouseDown}
         onCharacterHitRegionChange={handleCharacterHitRegionChange}
         onCharacterFrameChange={handleCharacterFrameChange}
         onMenuVisibilityChange={handleMenuVisibilityChange}

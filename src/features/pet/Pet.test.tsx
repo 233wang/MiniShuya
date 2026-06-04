@@ -9,7 +9,7 @@ const renderPet = (props?: Partial<Parameters<typeof Pet>[0]>) =>
       onDragEnd={() => undefined}
       onExit={() => undefined}
       systemIdleMillis={0}
-      isPrimaryMouseDown={true}
+      readPrimaryMouseDown={() => true}
       {...props}
     />,
   );
@@ -20,13 +20,21 @@ const firePointerEvent = (
   options: { clientX: number; clientY: number; pointerId: number; screenX?: number; screenY?: number },
 ) => {
   const event = createEvent[type](element);
-  Object.defineProperties(event, {
+  const eventProperties: PropertyDescriptorMap = {
     clientX: { value: options.clientX },
     clientY: { value: options.clientY },
-    screenX: { value: options.screenX ?? options.clientX },
-    screenY: { value: options.screenY ?? options.clientY },
     pointerId: { value: options.pointerId },
-  });
+  };
+
+  if (options.screenX !== undefined) {
+    eventProperties.screenX = { value: options.screenX };
+  }
+
+  if (options.screenY !== undefined) {
+    eventProperties.screenY = { value: options.screenY };
+  }
+
+  Object.defineProperties(event, eventProperties);
   fireEvent(element, event);
 };
 
@@ -130,21 +138,14 @@ describe("Pet", () => {
 
   it("uses drag recovery when the system primary mouse button is released", async () => {
     const onDragEnd = vi.fn();
-    const { rerender } = renderPet({ onDragEnd, isPrimaryMouseDown: true });
+    let isPrimaryMouseDown = true;
+    renderPet({ onDragEnd, readPrimaryMouseDown: () => isPrimaryMouseDown });
 
     dragPastThreshold();
     const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
     expect(pet).toHaveClass("pet--dragging");
 
-    rerender(
-      <Pet
-        onDragMove={() => undefined}
-        onDragEnd={onDragEnd}
-        onExit={() => undefined}
-        systemIdleMillis={0}
-        isPrimaryMouseDown={false}
-      />,
-    );
+    isPrimaryMouseDown = false;
 
     await waitFor(() => {
       expect(pet).toHaveClass("pet--draggingRecover");
@@ -322,7 +323,7 @@ describe("Pet", () => {
         onDragEnd={() => undefined}
         onExit={() => undefined}
         systemIdleMillis={60_000}
-        isPrimaryMouseDown={true}
+        readPrimaryMouseDown={() => true}
       />,
     );
 
@@ -341,7 +342,7 @@ describe("Pet", () => {
         onDragEnd={() => undefined}
         onExit={() => undefined}
         systemIdleMillis={0}
-        isPrimaryMouseDown={true}
+        readPrimaryMouseDown={() => true}
       />,
     );
 
