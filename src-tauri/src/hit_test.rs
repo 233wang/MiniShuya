@@ -1,5 +1,8 @@
 use std::{
-    sync::atomic::{AtomicBool, AtomicI32, Ordering},
+    sync::{
+        atomic::{AtomicBool, AtomicI32, Ordering},
+        Mutex,
+    },
     thread,
     time::Duration,
 };
@@ -15,6 +18,7 @@ static CHARACTER_HIT_X: AtomicI32 = AtomicI32::new(4);
 static CHARACTER_HIT_Y: AtomicI32 = AtomicI32::new(2);
 static CHARACTER_HIT_WIDTH: AtomicI32 = AtomicI32::new(150);
 static CHARACTER_HIT_HEIGHT: AtomicI32 = AtomicI32::new(225);
+static CURRENT_CHARACTER_FRAME_KEY: Mutex<String> = Mutex::new(String::new());
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HitPoint {
@@ -93,6 +97,20 @@ pub fn set_character_hit_region(region: HitRect) {
 
 pub fn is_menu_hit_region_visible() -> bool {
     MENU_HIT_REGION_VISIBLE.load(Ordering::Relaxed)
+}
+
+pub fn set_current_character_frame(frame_key: String) {
+    if let Ok(mut current_frame_key) = CURRENT_CHARACTER_FRAME_KEY.lock() {
+        *current_frame_key = frame_key;
+    }
+}
+
+#[cfg(test)]
+pub fn current_character_frame_key() -> String {
+    CURRENT_CHARACTER_FRAME_KEY
+        .lock()
+        .map(|frame_key| frame_key.clone())
+        .unwrap_or_default()
 }
 
 pub fn current_pet_hit_regions(menu_visible: bool) -> PetHitRegions {

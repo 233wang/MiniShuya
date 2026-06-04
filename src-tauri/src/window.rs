@@ -55,6 +55,11 @@ pub fn set_character_hit_region(region: crate::hit_test::HitRect) {
     crate::hit_test::set_character_hit_region(region);
 }
 
+#[tauri::command]
+pub fn set_current_character_frame(frame_key: String) {
+    crate::hit_test::set_current_character_frame(frame_key);
+}
+
 pub fn save_current_window_position(app: &AppHandle) -> Result<(), String> {
     let Some(window) = app.get_webview_window("main") else {
         return Ok(());

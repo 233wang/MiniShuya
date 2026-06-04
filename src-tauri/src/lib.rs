@@ -20,6 +20,7 @@ pub fn run() {
             window::save_current_position,
             window::save_window_position,
             window::set_character_hit_region,
+            window::set_current_character_frame,
             window::set_menu_hit_region_visible,
             window::start_drag
         ])

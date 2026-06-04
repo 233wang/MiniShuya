@@ -130,3 +130,13 @@ fn uses_latest_reported_character_hit_region() {
     assert!(should_ignore_cursor(HitPoint { x: 80, y: 120 }, regions));
     assert!(!should_ignore_cursor(HitPoint { x: 176, y: 218 }, regions));
 }
+
+#[test]
+fn stores_current_character_frame_key() {
+    crate::hit_test::set_current_character_frame("petting-01".to_string());
+
+    assert_eq!(
+        crate::hit_test::current_character_frame_key(),
+        "petting-01".to_string()
+    );
+}
