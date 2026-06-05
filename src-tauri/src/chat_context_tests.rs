@@ -52,6 +52,10 @@ fn derives_chat_completions_url() {
         build_chat_completions_url("https://example.com/v1/chat/completions").unwrap(),
         "https://example.com/v1/chat/completions"
     );
+    assert_eq!(
+        build_chat_completions_url("   ").unwrap_err(),
+        "请先在设置里填写 API 地址、Key 和模型名称。"
+    );
 }
 
 #[test]
@@ -136,4 +140,31 @@ fn keeps_newest_recent_messages_under_budget_and_preserves_order() {
         .position(|content| *content == "最近回答")
         .unwrap();
     assert!(recent_question_index < recent_answer_index);
+}
+
+#[test]
+fn counts_recent_message_structural_overhead() {
+    let conversation = Conversation {
+        messages: vec![
+            message("01", ChatRole::User, "一"),
+            message("02", ChatRole::Assistant, "二"),
+            message("03", ChatRole::User, "三"),
+            message("04", ChatRole::Assistant, "四"),
+        ],
+    };
+
+    let messages = build_context_messages(
+        &settings(false, 74),
+        &conversation,
+        &memory("", ""),
+        "当前问题",
+    );
+    let recent_count = messages
+        .iter()
+        .filter(|message| message.content == "一" || message.content == "二")
+        .count();
+
+    assert_eq!(recent_count, 0);
+    assert!(messages.iter().any(|message| message.content == "三"));
+    assert!(messages.iter().any(|message| message.content == "四"));
 }

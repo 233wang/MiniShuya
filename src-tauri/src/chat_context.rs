@@ -49,7 +49,7 @@ pub fn build_context_messages(
     let mut recent_messages = Vec::new();
     let mut used_recent_tokens = 0usize;
     for message in conversation.messages.iter().rev() {
-        let token_count = approximate_tokens(&message.content);
+        let token_count = approximate_tokens(&message.content) + 4;
         if used_recent_tokens.saturating_add(token_count) > recent_budget {
             continue;
         }
