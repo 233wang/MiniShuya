@@ -1,5 +1,8 @@
 .worktrees/
+.agents/
+.superpowers/
 docs/handovers/
+_tmp_*
 
 # Logs
 logs
