@@ -90,3 +90,52 @@ fn saves_and_loads_memory() {
 
     assert_eq!(load_chat_memory_from_dir(&dir).unwrap(), memory);
 }
+
+#[test]
+fn invalid_json_returns_error() {
+    let dir = unique_temp_dir("invalid-json");
+    std::fs::write(dir.join("chat-settings.json"), "{not valid json")
+        .expect("invalid settings file should be written");
+
+    let error = load_chat_settings_from_dir(&dir).unwrap_err();
+
+    assert!(error.contains("failed to parse"));
+    assert!(error.contains("chat-settings.json"));
+}
+
+#[test]
+fn save_creates_parent_directory() {
+    let dir = unique_temp_dir("creates-parent")
+        .join("nested")
+        .join("settings");
+    let settings = ChatSettings {
+        base_url: "https://api.deepseek.com/v1".to_string(),
+        api_key: "secret".to_string(),
+        model: "deepseek-chat".to_string(),
+        temperature: 0.4,
+        max_context_tokens: 4096,
+        memory_enabled: true,
+    };
+
+    save_chat_settings_to_dir(&dir, &settings).unwrap();
+
+    assert!(dir.join("chat-settings.json").exists());
+    assert_eq!(load_chat_settings_from_dir(&dir).unwrap(), settings);
+}
+
+#[test]
+fn save_writes_pretty_json() {
+    let dir = unique_temp_dir("pretty-json");
+    let memory = ChatMemory {
+        profile: "用户喜欢简洁回答。".to_string(),
+        summary: "用户正在开发 MiniShuya。".to_string(),
+        updated_at: Some("2026-06-05T10:00:00Z".to_string()),
+    };
+
+    save_chat_memory_to_dir(&dir, &memory).unwrap();
+
+    let content = std::fs::read_to_string(dir.join("chat-memory.json"))
+        .expect("memory file should be readable");
+    assert!(content.contains('\n'));
+    assert!(content.contains("  \"profile\""));
+}
