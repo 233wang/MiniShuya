@@ -1,10 +1,13 @@
 use tauri::Manager;
 
 mod character_alpha_mask;
+mod chat_storage;
 mod hit_test;
 mod window;
 mod window_position;
 
+#[cfg(test)]
+mod chat_storage_tests;
 #[cfg(test)]
 mod hit_test_tests;
 #[cfg(test)]
