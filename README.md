@@ -71,11 +71,27 @@ Phase 1 demo is expected to support:
 - Mouse drag movement.
 - Window position restore after restart.
 
+Phase 2.1 adds:
+
+- A typed pet action state machine.
+- Hover, pressed, petting, dragging, menu-open, and sleepy state classes.
+- State-specific CSS reactions for the current fallback character.
+
+Phase 2.2 candidate asset pipeline adds:
+
+- A project-local character asset folder at `src/assets/characters/minishuya-default/`.
+- A user-approved transparent `idle.png` candidate generated from reference photos.
+- A character asset manifest for future state-specific images.
+- Image-based pet rendering, with the current action states temporarily reusing the idle image.
+- A smaller desktop window and compact right-click menu that avoids covering the character.
+
 Last verified commands:
 
 ```powershell
 pnpm test
 pnpm build
 cd src-tauri
+cargo fmt --check
 cargo test
+cargo clippy
 ```
