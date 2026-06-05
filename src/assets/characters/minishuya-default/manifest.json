@@ -21,6 +21,28 @@
       "frameDurationMs": 700,
       "loop": true
     },
+    "greeting": {
+      "frames": [
+        "frames/greeting-01.png",
+        "frames/greeting-02.png",
+        "frames/greeting-03.png",
+        "frames/greeting-04.png",
+        "frames/greeting-05.png",
+        "frames/greeting-06.png",
+        "frames/greeting-07.png",
+        "frames/greeting-08.png",
+        "frames/greeting-09.png",
+        "frames/greeting-10.png",
+        "frames/greeting-11.png",
+        "frames/greeting-12.png",
+        "frames/greeting-13.png",
+        "frames/greeting-14.png",
+        "frames/greeting-15.png",
+        "frames/greeting-16.png"
+      ],
+      "frameDurationMs": 160,
+      "loop": false
+    },
     "dragging": {
       "frames": [
         "frames/dragging-02.png",
@@ -79,6 +101,7 @@
     "idle": "idle",
     "hover": "hover",
     "pressed": "hover",
+    "greeting": "greeting",
     "petting": "petting",
     "dragging": "dragging",
     "draggingRecover": "draggingRecover",

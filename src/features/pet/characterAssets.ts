@@ -11,6 +11,7 @@ export type CharacterHitRegion = {
 export type PetCharacterActionId =
   | "idle"
   | "hover"
+  | "greeting"
   | "dragging"
   | "draggingRecover"
   | "petting"
@@ -91,6 +92,7 @@ export const minishuyaDefaultCharacter: PetCharacterManifest = {
   actions: {
     idle: actionFromManifest("idle"),
     hover: actionFromManifest("hover"),
+    greeting: actionFromManifest("greeting"),
     dragging: actionFromManifest("dragging"),
     draggingRecover: actionFromManifest("draggingRecover"),
     petting: actionFromManifest("petting"),

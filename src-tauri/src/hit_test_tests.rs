@@ -66,6 +66,19 @@ fn uses_frame_specific_alpha_masks() {
 }
 
 #[test]
+fn uses_greeting_alpha_masks() {
+    let character = regions(false).character;
+    let point = HitPoint { x: 90, y: 25 };
+
+    assert!(!is_character_opaque_at_frame(point, character, "idle-01"));
+    assert!(is_character_opaque_at_frame(
+        point,
+        character,
+        "greeting-04"
+    ));
+}
+
+#[test]
 fn treats_menu_area_as_interactive_only_when_menu_is_visible() {
     assert!(is_pet_interactive_point(
         HitPoint { x: 200, y: 60 },

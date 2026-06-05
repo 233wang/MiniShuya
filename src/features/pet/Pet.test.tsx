@@ -252,8 +252,29 @@ describe("Pet", () => {
     renderPet({ onCharacterFrameChange });
 
     await waitFor(() => {
-      expect(onCharacterFrameChange).toHaveBeenCalledWith("idle-01");
+      expect(onCharacterFrameChange).toHaveBeenCalledWith("greeting-01");
     });
+  });
+
+  it("plays the greeting animation once when mounted", () => {
+    vi.useFakeTimers();
+    renderPet();
+
+    const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
+    expect(pet).toHaveClass("pet--greeting");
+
+    act(() => {
+      vi.advanceTimersByTime(1_500);
+    });
+
+    expect(pet).toHaveClass("pet--greeting");
+
+    act(() => {
+      vi.advanceTimersByTime(1_100);
+    });
+
+    expect(pet).toHaveClass("pet--idle");
+    vi.useRealTimers();
   });
 
   it("hides the exit menu when dragging starts", () => {

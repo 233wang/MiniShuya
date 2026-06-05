@@ -2,6 +2,7 @@ export type PetActionState =
   | "idle"
   | "hover"
   | "pressed"
+  | "greeting"
   | "petting"
   | "dragging"
   | "draggingRecover"
@@ -13,6 +14,8 @@ export type PetActionEvent =
   | { type: "POINTER_LEAVE" }
   | { type: "POINTER_DOWN" }
   | { type: "POINTER_UP" }
+  | { type: "GREETING_START" }
+  | { type: "GREETING_END" }
   | { type: "DRAG_START" }
   | { type: "DRAG_END" }
   | { type: "DRAG_RECOVER_END" }
@@ -48,6 +51,10 @@ export function transitionPetActionState(
       return "pressed";
     case "POINTER_UP":
       return state === "petting" ? "idle" : "hover";
+    case "GREETING_START":
+      return "greeting";
+    case "GREETING_END":
+      return "idle";
     case "DRAG_START":
       return "dragging";
     case "DRAG_END":
@@ -63,7 +70,7 @@ export function transitionPetActionState(
     case "PETTING_END":
       return "idle";
     case "IDLE_TIMEOUT":
-      return state === "idle" || state === "sleepy" ? "sleepy" : state;
+      return state === "idle" || state === "greeting" || state === "sleepy" ? "sleepy" : state;
     case "WAKE":
       return "idle";
   }

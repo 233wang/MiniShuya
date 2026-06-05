@@ -46,7 +46,9 @@ export function Pet({
   onCharacterHitRegionChange,
   onCharacterFrameChange,
 }: PetProps) {
-  const [actionState, setActionState] = useState(initialPetActionState);
+  const [actionState, setActionState] = useState(() =>
+    transitionPetActionState(initialPetActionState(), { type: "GREETING_START" }),
+  );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [sleepyCycleKey, setSleepyCycleKey] = useState(0);
   const characterRef = useRef<HTMLImageElement>(null);
@@ -120,13 +122,22 @@ export function Pet({
   }, [actionState, readPrimaryMouseDown]);
 
   useEffect(() => {
-    if (actionState !== "petting" && actionState !== "draggingRecover") {
+    if (
+      actionState !== "greeting" &&
+      actionState !== "petting" &&
+      actionState !== "draggingRecover"
+    ) {
       return undefined;
     }
 
     const timeout = window.setTimeout(() => {
       dispatchAction({
-        type: actionState === "petting" ? "PETTING_END" : "DRAG_RECOVER_END",
+        type:
+          actionState === "greeting"
+            ? "GREETING_END"
+            : actionState === "petting"
+              ? "PETTING_END"
+              : "DRAG_RECOVER_END",
       });
     }, currentAction.frames.length * currentAction.frameDurationMs);
 

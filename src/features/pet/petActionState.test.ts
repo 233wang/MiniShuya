@@ -23,6 +23,11 @@ describe("pet action state", () => {
     expect(transitionPetActionState("hover", { type: "POINTER_DOWN" })).toBe("pressed");
   });
 
+  it("plays greeting as a one-shot state", () => {
+    expect(transitionPetActionState("idle", { type: "GREETING_START" })).toBe("greeting");
+    expect(transitionPetActionState("greeting", { type: "GREETING_END" })).toBe("idle");
+  });
+
   it("dragging overrides other states until drag ends", () => {
     expect(transitionPetActionState("petting", { type: "DRAG_START" })).toBe("dragging");
     expect(transitionPetActionState("dragging", { type: "POINTER_ENTER" })).toBe("dragging");
@@ -43,6 +48,7 @@ describe("pet action state", () => {
 
   it("sleepy only appears from quiet states and wakes on interaction", () => {
     expect(transitionPetActionState("idle", { type: "IDLE_TIMEOUT" })).toBe("sleepy");
+    expect(transitionPetActionState("greeting", { type: "IDLE_TIMEOUT" })).toBe("sleepy");
     expect(transitionPetActionState("hover", { type: "IDLE_TIMEOUT" })).toBe("hover");
     expect(transitionPetActionState("sleepy", { type: "WAKE" })).toBe("idle");
   });
@@ -51,6 +57,7 @@ describe("pet action state", () => {
     "idle",
     "hover",
     "pressed",
+    "greeting",
     "petting",
     "dragging",
     "draggingRecover",

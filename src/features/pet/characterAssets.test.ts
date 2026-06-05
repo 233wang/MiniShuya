@@ -10,6 +10,7 @@ describe("characterAssets", () => {
   it("maps pet action states to manifest actions", () => {
     expect(actionForPetState(minishuyaDefaultCharacter, "idle").id).toBe("idle");
     expect(actionForPetState(minishuyaDefaultCharacter, "petting").id).toBe("petting");
+    expect(actionForPetState(minishuyaDefaultCharacter, "greeting").id).toBe("greeting");
     expect(actionForPetState(minishuyaDefaultCharacter, "dragging").id).toBe("dragging");
     expect(actionForPetState(minishuyaDefaultCharacter, "draggingRecover").id).toBe(
       "draggingRecover",
@@ -40,6 +41,15 @@ describe("characterAssets", () => {
 
   it("uses dedicated generated frame sequences for interactive actions", () => {
     expect(minishuyaDefaultCharacter.actions.petting.frames).toHaveLength(8);
+    expect(minishuyaDefaultCharacter.actions.greeting.frames).toHaveLength(16);
+    expect(
+      minishuyaDefaultCharacter.actions.greeting.frames.length *
+        minishuyaDefaultCharacter.actions.greeting.frameDurationMs,
+    ).toBeGreaterThanOrEqual(2_000);
+    expect(
+      minishuyaDefaultCharacter.actions.greeting.frames.length *
+        minishuyaDefaultCharacter.actions.greeting.frameDurationMs,
+    ).toBeLessThanOrEqual(3_000);
     expect(minishuyaDefaultCharacter.actions.sleepy.frames).toHaveLength(8);
     expect(minishuyaDefaultCharacter.actions.dragging.frames).toHaveLength(3);
     expect(minishuyaDefaultCharacter.actions.draggingRecover.frames).toHaveLength(5);
@@ -47,6 +57,9 @@ describe("characterAssets", () => {
     expect(frameForAction(minishuyaDefaultCharacter, "petting", 0).key).toBe("petting-01");
     expect(frameForAction(minishuyaDefaultCharacter, "petting", 7).key).toBe("petting-08");
     expect(frameForAction(minishuyaDefaultCharacter, "petting", 8).key).toBe("petting-01");
+    expect(frameForAction(minishuyaDefaultCharacter, "greeting", 0).key).toBe("greeting-01");
+    expect(frameForAction(minishuyaDefaultCharacter, "greeting", 15).key).toBe("greeting-16");
+    expect(frameForAction(minishuyaDefaultCharacter, "greeting", 16).key).toBe("greeting-01");
     expect(frameForAction(minishuyaDefaultCharacter, "sleepy", 0).key).toBe("sleepy-01");
     expect(frameForAction(minishuyaDefaultCharacter, "sleepy", 7).key).toBe("sleepy-08");
     expect(frameForAction(minishuyaDefaultCharacter, "dragging", 0).key).toBe("dragging-02");
