@@ -188,6 +188,22 @@ describe("Pet", () => {
     expect(onExit).toHaveBeenCalledTimes(1);
   });
 
+  it("opens chat and settings from the pet menu", () => {
+    const onOpenChat = vi.fn();
+    const onOpenSettings = vi.fn();
+    renderPet({ onOpenChat, onOpenSettings });
+
+    const pet = screen.getByRole("button", { name: "MiniShuya desktop pet" });
+    fireEvent.contextMenu(pet);
+    fireEvent.click(screen.getByRole("menuitem", { name: "聊天" }));
+    fireEvent.contextMenu(pet);
+    fireEvent.click(screen.getByRole("menuitem", { name: "设置" }));
+
+    expect(onOpenChat).toHaveBeenCalledOnce();
+    expect(onOpenSettings).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
   it("does not start dragging when the exit menu item is pressed", () => {
     const onDragMove = vi.fn();
     renderPet({ onDragMove });

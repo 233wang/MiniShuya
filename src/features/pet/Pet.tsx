@@ -16,6 +16,8 @@ type PetProps = {
   onDragMove: (delta: { deltaX: number; deltaY: number }) => void;
   onDragEnd: () => void;
   onExit: () => void;
+  onOpenChat?: () => void;
+  onOpenSettings?: () => void;
   systemIdleMillis: number;
   readPrimaryMouseDown: () => boolean | Promise<boolean>;
   onMenuVisibilityChange?: (visible: boolean) => void;
@@ -40,6 +42,8 @@ export function Pet({
   onDragMove,
   onDragEnd,
   onExit,
+  onOpenChat,
+  onOpenSettings,
   systemIdleMillis,
   readPrimaryMouseDown,
   onMenuVisibilityChange,
@@ -370,17 +374,44 @@ export function Pet({
           onPointerDown={(event) => event.stopPropagation()}
         >
           <span className="pet-menu__title">MiniShuya</span>
+          {[
+            ...(onOpenChat ? [{ label: "聊天", action: onOpenChat }] : []),
+            ...(onOpenSettings ? [{ label: "设置", action: onOpenSettings }] : []),
+          ].map((item) => (
+            <span
+              key={item.label}
+              className="pet-menu__item"
+              role="menuitem"
+              tabIndex={0}
+              onClick={(event) => {
+                event.stopPropagation();
+                closeMenu();
+                item.action();
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  closeMenu();
+                  item.action();
+                }
+              }}
+            >
+              {item.label}
+            </span>
+          ))}
           <span
             className="pet-menu__item"
             role="menuitem"
             tabIndex={0}
             onClick={(event) => {
               event.stopPropagation();
+              closeMenu();
               onExit();
             }}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
+                closeMenu();
                 onExit();
               }
             }}
