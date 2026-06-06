@@ -12,6 +12,7 @@ use crate::character_alpha_mask::{
 };
 
 static MENU_HIT_REGION_VISIBLE: AtomicBool = AtomicBool::new(false);
+static OVERLAY_HIT_REGION_VISIBLE: AtomicBool = AtomicBool::new(false);
 static PET_CURSOR_MONITOR_STARTED: AtomicBool = AtomicBool::new(false);
 static PET_WINDOW_IGNORES_CURSOR: AtomicBool = AtomicBool::new(false);
 static CHARACTER_HIT_X: AtomicI32 = AtomicI32::new(4);
@@ -49,6 +50,7 @@ pub struct PetHitRegions {
     pub character: HitRect,
     pub menu: HitRect,
     pub menu_visible: bool,
+    pub overlay_visible: bool,
 }
 
 impl Default for PetHitRegions {
@@ -67,13 +69,15 @@ impl Default for PetHitRegions {
                 height: 62,
             },
             menu_visible: false,
+            overlay_visible: false,
         }
     }
 }
 
 pub fn is_pet_interactive_point(point: HitPoint, regions: PetHitRegions) -> bool {
-    is_character_opaque_at(point, regions.character)
-        || (regions.menu_visible && regions.menu.contains(point))
+    regions.menu_visible
+        || regions.overlay_visible
+        || is_character_opaque_at(point, regions.character)
 }
 
 pub fn should_ignore_cursor(point: HitPoint, regions: PetHitRegions) -> bool {
@@ -82,6 +86,10 @@ pub fn should_ignore_cursor(point: HitPoint, regions: PetHitRegions) -> bool {
 
 pub fn set_menu_hit_region_visible(visible: bool) {
     MENU_HIT_REGION_VISIBLE.store(visible, Ordering::Relaxed);
+}
+
+pub fn set_overlay_hit_region_visible(visible: bool) {
+    OVERLAY_HIT_REGION_VISIBLE.store(visible, Ordering::Relaxed);
 }
 
 pub fn set_character_hit_region(region: HitRect) {
@@ -122,6 +130,7 @@ pub fn current_pet_hit_regions(menu_visible: bool) -> PetHitRegions {
         },
         menu: PetHitRegions::default().menu,
         menu_visible,
+        overlay_visible: OVERLAY_HIT_REGION_VISIBLE.load(Ordering::Relaxed),
     }
 }
 

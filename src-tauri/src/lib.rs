@@ -38,6 +38,7 @@ pub fn run() {
             window::set_character_hit_region,
             window::set_current_character_frame,
             window::set_menu_hit_region_visible,
+            window::set_overlay_hit_region_visible,
             window::start_drag,
             window::system_idle_millis
         ])

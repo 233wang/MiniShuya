@@ -112,6 +112,11 @@ pub fn set_menu_hit_region_visible(visible: bool) {
 }
 
 #[tauri::command]
+pub fn set_overlay_hit_region_visible(visible: bool) {
+    crate::hit_test::set_overlay_hit_region_visible(visible);
+}
+
+#[tauri::command]
 pub fn set_character_hit_region(region: crate::hit_test::HitRect) {
     crate::hit_test::set_character_hit_region(region);
 }

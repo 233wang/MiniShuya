@@ -19,7 +19,16 @@ fn regions(menu_visible: bool) -> PetHitRegions {
             height: 62,
         },
         menu_visible,
+        overlay_visible: false,
     }
+}
+
+#[test]
+fn treats_entire_window_as_interactive_while_overlay_is_visible() {
+    let mut regions = regions(false);
+    regions.overlay_visible = true;
+
+    assert!(!should_ignore_cursor(HitPoint { x: 499, y: 469 }, regions));
 }
 
 #[test]

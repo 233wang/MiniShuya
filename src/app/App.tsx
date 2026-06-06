@@ -51,6 +51,10 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    void invoke("set_overlay_hit_region_visible", { visible: activePanel !== null });
+  }, [activePanel]);
+
+  useEffect(() => {
     let cancelled = false;
 
     void Promise.all([
