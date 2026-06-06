@@ -14,8 +14,8 @@
       {
         "label": "main",
         "title": "MiniShuya",
-        "width": 240,
-        "height": 240,
+        "width": 500,
+        "height": 470,
         "resizable": false,
         "fullscreen": false,
         "decorations": false,
