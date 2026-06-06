@@ -78,6 +78,10 @@ pub fn parse_openai_response(body: &str) -> Result<String, String> {
     Ok(content.to_string())
 }
 
+fn provider_status_error(status: reqwest::StatusCode) -> String {
+    format!("服务返回错误：{status}，请检查 API Key、API 地址和模型名称。")
+}
+
 fn now_millis_string() -> String {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -188,7 +192,7 @@ pub async fn send_chat_message(app: AppHandle, content: String) -> Result<ChatSe
         .await
         .map_err(|error| format!("读取模型回复失败：{error}"))?;
     if !status.is_success() {
-        return Err(format!("服务返回错误：{status}"));
+        return Err(provider_status_error(status));
     }
 
     let assistant_message = new_message(ChatRole::Assistant, parse_openai_response(&body)?);
@@ -207,7 +211,10 @@ pub async fn send_chat_message(app: AppHandle, content: String) -> Result<ChatSe
 mod tests {
     use crate::chat_storage::ChatSettings;
 
-    use super::{parse_openai_response, validate_chat_settings, validate_chat_settings_for_save};
+    use super::{
+        parse_openai_response, provider_status_error, validate_chat_settings,
+        validate_chat_settings_for_save,
+    };
 
     fn settings() -> ChatSettings {
         ChatSettings {
@@ -281,6 +288,14 @@ mod tests {
         assert_eq!(
             parse_openai_response("not json").unwrap_err(),
             "没有读取到模型回复，请检查模型接口是否兼容。"
+        );
+    }
+
+    #[test]
+    fn provider_status_error_is_actionable() {
+        assert_eq!(
+            provider_status_error(reqwest::StatusCode::UNAUTHORIZED),
+            "服务返回错误：401 Unauthorized，请检查 API Key、API 地址和模型名称。"
         );
     }
 
