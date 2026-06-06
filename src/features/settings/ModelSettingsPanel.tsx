@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   chatSettingsFromDraft,
   settingsDraftFromView,
@@ -45,11 +45,27 @@ export function ModelSettingsPanel({
   );
   const [memoryDraft, setMemoryDraft] = useState(memory);
   const [errors, setErrors] = useState<ChatSettingsErrors>({});
+  const settingsDirty = useRef(false);
+  const memoryDirty = useRef(false);
+
+  useEffect(() => {
+    if (!settingsDirty.current) {
+      setDraft(settingsDraftFromView(settings ?? emptySettingsView));
+      setErrors({});
+    }
+  }, [settings]);
+
+  useEffect(() => {
+    if (!memoryDirty.current) {
+      setMemoryDraft(memory);
+    }
+  }, [memory]);
 
   const updateDraft = <Key extends keyof ChatSettingsDraft>(
     key: Key,
     value: ChatSettingsDraft[Key],
   ) => {
+    settingsDirty.current = true;
     setDraft((current) => ({ ...current, [key]: value }));
     setErrors((current) => ({ ...current, [key]: undefined }));
   };
@@ -66,6 +82,10 @@ export function ModelSettingsPanel({
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSaving) {
+      return;
+    }
+
     const nextErrors = validateSettingsDraft(draft);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
@@ -82,6 +102,7 @@ export function ModelSettingsPanel({
         <button
           className="icon-button"
           type="button"
+          disabled={isSaving}
           onClick={onClose}
           aria-label="关闭设置"
         >
@@ -94,6 +115,7 @@ export function ModelSettingsPanel({
           <span>API 地址</span>
           <input
             value={draft.baseUrl}
+            disabled={isSaving}
             placeholder="https://api.deepseek.com/v1"
             aria-invalid={Boolean(errors.baseUrl)}
             aria-describedby={errors.baseUrl ? "base-url-error" : undefined}
@@ -111,6 +133,7 @@ export function ModelSettingsPanel({
           <input
             type="password"
             value={draft.apiKey}
+            disabled={isSaving}
             autoComplete="off"
             aria-label="API Key"
             placeholder={keyCanBePreserved ? "留空保留当前 Key" : "输入 API Key"}
@@ -132,6 +155,7 @@ export function ModelSettingsPanel({
           <span>模型</span>
           <input
             value={draft.model}
+            disabled={isSaving}
             placeholder="deepseek-chat"
             aria-invalid={Boolean(errors.model)}
             aria-describedby={errors.model ? "model-error" : undefined}
@@ -153,10 +177,17 @@ export function ModelSettingsPanel({
               max={2}
               step={0.1}
               value={draft.temperature}
+              disabled={isSaving}
+              aria-label="Temperature"
               aria-invalid={Boolean(errors.temperature)}
+              aria-describedby={errors.temperature ? "temperature-error" : undefined}
               onChange={(event) => updateDraft("temperature", Number(event.target.value))}
             />
-            {errors.temperature ? <small className="field-error">{errors.temperature}</small> : null}
+            {errors.temperature ? (
+              <small id="temperature-error" className="field-error">
+                {errors.temperature}
+              </small>
+            ) : null}
           </label>
 
           <label className="field">
@@ -166,13 +197,20 @@ export function ModelSettingsPanel({
               min={1}
               step={1}
               value={draft.maxContextTokens}
+              disabled={isSaving}
+              aria-label="上下文窗口"
               aria-invalid={Boolean(errors.maxContextTokens)}
+              aria-describedby={
+                errors.maxContextTokens ? "max-context-tokens-error" : undefined
+              }
               onChange={(event) =>
                 updateDraft("maxContextTokens", Number(event.target.value))
               }
             />
             {errors.maxContextTokens ? (
-              <small className="field-error">{errors.maxContextTokens}</small>
+              <small id="max-context-tokens-error" className="field-error">
+                {errors.maxContextTokens}
+              </small>
             ) : null}
           </label>
         </div>
@@ -181,6 +219,7 @@ export function ModelSettingsPanel({
           <input
             type="checkbox"
             checked={draft.memoryEnabled}
+            disabled={isSaving}
             onChange={(event) => updateDraft("memoryEnabled", event.target.checked)}
           />
           <span>启用记忆</span>
@@ -192,12 +231,14 @@ export function ModelSettingsPanel({
             <textarea
               value={memoryDraft.profile}
               rows={4}
-              onChange={(event) =>
+              disabled={isSaving}
+              onChange={(event) => {
+                memoryDirty.current = true;
                 setMemoryDraft((current) => ({
                   ...current,
                   profile: event.target.value,
-                }))
-              }
+                }));
+              }}
             />
           </label>
         ) : null}
@@ -209,7 +250,12 @@ export function ModelSettingsPanel({
         ) : null}
 
         <footer className="panel-actions">
-          <button type="button" className="secondary-button" onClick={onClose}>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={isSaving}
+            onClick={onClose}
+          >
             取消
           </button>
           <button type="submit" className="primary-button" disabled={isSaving}>

@@ -74,6 +74,51 @@ describe("ModelSettingsPanel", () => {
     expect(screen.getByLabelText("模型")).toHaveValue("");
   });
 
+  it("syncs asynchronously loaded settings and memory into untouched drafts", () => {
+    const { rerender } = renderPanel({
+      settings: null,
+      memory: { profile: "", summary: "", updatedAt: null },
+    });
+
+    rerender(
+      <ModelSettingsPanel
+        settings={settings}
+        memory={memory}
+        isSaving={false}
+        error={null}
+        onSave={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("API 地址")).toHaveValue(settings.baseUrl);
+    expect(screen.getByLabelText("模型")).toHaveValue(settings.model);
+    expect(screen.getByLabelText("用户记忆")).toHaveValue(memory.profile);
+  });
+
+  it("does not overwrite settings or memory drafts after the user starts editing them", async () => {
+    const { rerender } = renderPanel();
+
+    await userEvent.clear(screen.getByLabelText("模型"));
+    await userEvent.type(screen.getByLabelText("模型"), "user-model");
+    await userEvent.clear(screen.getByLabelText("用户记忆"));
+    await userEvent.type(screen.getByLabelText("用户记忆"), "用户正在编辑");
+
+    rerender(
+      <ModelSettingsPanel
+        settings={{ ...settings, model: "remote-model" }}
+        memory={{ ...memory, profile: "远端记忆" }}
+        isSaving={false}
+        error={null}
+        onSave={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("模型")).toHaveValue("user-model");
+    expect(screen.getByLabelText("用户记忆")).toHaveValue("用户正在编辑");
+  });
+
   it("requires a new API key after the API address changes", async () => {
     const onSave = vi.fn();
     renderPanel({ onSave });
@@ -147,7 +192,29 @@ describe("ModelSettingsPanel", () => {
     );
   });
 
-  it("shows saving and error states and allows closing", async () => {
+  it("associates numeric validation errors with their inputs", async () => {
+    renderPanel();
+
+    await userEvent.clear(screen.getByLabelText("Temperature"));
+    await userEvent.type(screen.getByLabelText("Temperature"), "3");
+    await userEvent.clear(screen.getByLabelText("上下文窗口"));
+    await userEvent.click(screen.getByRole("button", { name: "保存设置" }));
+
+    const temperatureError = screen.getByText("temperature 必须在 0 到 2 之间");
+    const contextError = screen.getByText("上下文窗口必须是正数");
+    expect(temperatureError).toHaveAttribute("id", "temperature-error");
+    expect(contextError).toHaveAttribute("id", "max-context-tokens-error");
+    expect(screen.getByLabelText("Temperature")).toHaveAttribute(
+      "aria-describedby",
+      "temperature-error",
+    );
+    expect(screen.getByLabelText("上下文窗口")).toHaveAttribute(
+      "aria-describedby",
+      "max-context-tokens-error",
+    );
+  });
+
+  it("shows errors and disables every editable or closing control while saving", async () => {
     const onClose = vi.fn();
     renderPanel({
       isSaving: true,
@@ -157,8 +224,19 @@ describe("ModelSettingsPanel", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("保存失败，请重试");
     expect(screen.getByRole("button", { name: "保存中" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "关闭设置" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "取消" })).toBeDisabled();
+    expect(screen.getByLabelText("API Key")).toBeDisabled();
+    for (const control of [
+      ...screen.getAllByRole("textbox"),
+      ...screen.getAllByRole("spinbutton"),
+      screen.getByRole("checkbox", { name: "启用记忆" }),
+    ]) {
+      expect(control).toBeDisabled();
+    }
 
     await userEvent.click(screen.getByRole("button", { name: "关闭设置" }));
-    expect(onClose).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole("button", { name: "取消" }));
+    expect(onClose).not.toHaveBeenCalled();
   });
 });
