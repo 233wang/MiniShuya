@@ -123,6 +123,22 @@ fn validate_chat_settings_for_save(settings: &ChatSettings) -> Result<(), String
     Ok(())
 }
 
+fn preserve_api_key_when_safe(
+    existing: &ChatSettings,
+    settings: &mut ChatSettings,
+) -> Result<(), String> {
+    if !settings.api_key.trim().is_empty() {
+        return Ok(());
+    }
+
+    if !existing.api_key.trim().is_empty() && existing.base_url.trim() != settings.base_url.trim() {
+        return Err("更换 API 地址时，请同时填写新的 API Key。".to_string());
+    }
+
+    settings.api_key = existing.api_key.clone();
+    Ok(())
+}
+
 pub fn parse_openai_response(body: &str) -> Result<String, String> {
     let response: OpenAiChatResponse =
         serde_json::from_str(body).map_err(|_| INVALID_RESPONSE_ERROR.to_string())?;
@@ -179,9 +195,8 @@ pub fn load_chat_settings(app: AppHandle) -> Result<ChatSettingsView, String> {
 pub fn save_chat_settings(app: AppHandle, mut settings: ChatSettings) -> Result<(), String> {
     validate_chat_settings_for_save(&settings)?;
     let dir = app_config_dir(&app)?;
-    if settings.api_key.trim().is_empty() {
-        settings.api_key = load_chat_settings_from_dir(&dir)?.api_key;
-    }
+    let existing = load_chat_settings_from_dir(&dir)?;
+    preserve_api_key_when_safe(&existing, &mut settings)?;
     save_chat_settings_to_dir(&dir, &settings)
 }
 
@@ -192,6 +207,7 @@ pub fn load_conversation(app: AppHandle) -> Result<Conversation, String> {
 
 #[tauri::command]
 pub fn clear_conversation(app: AppHandle) -> Result<(), String> {
+    let _send_guard = SendGuard::acquire()?;
     save_conversation_to_dir(
         &app_config_dir(&app)?,
         &Conversation {
@@ -266,6 +282,7 @@ async fn request_assistant_response(
     let url = build_chat_completions_url(&settings.base_url)?;
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(REQUEST_TIMEOUT_SECONDS))
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|error| format!("模型请求初始化失败：{error}"))?;
     let response = client
@@ -298,9 +315,9 @@ mod tests {
     use crate::chat_storage::ChatSettings;
 
     use super::{
-        parse_openai_response, provider_status_error, remove_message_by_id,
-        validate_base_url_security, validate_chat_settings, validate_chat_settings_for_save,
-        ChatSettingsView, SendGuard,
+        parse_openai_response, preserve_api_key_when_safe, provider_status_error,
+        remove_message_by_id, validate_base_url_security, validate_chat_settings,
+        validate_chat_settings_for_save, ChatSettingsView, SendGuard,
     };
     use crate::chat_storage::{ChatMessage, ChatRole, Conversation};
 
@@ -406,6 +423,24 @@ mod tests {
         assert!(view.api_key_configured);
         assert!(!json.contains("secret"));
         assert!(!json.contains("apiKey\""));
+    }
+
+    #[test]
+    fn preserves_api_key_only_when_base_url_is_unchanged() {
+        let existing = settings();
+        let mut unchanged = settings();
+        unchanged.api_key.clear();
+
+        preserve_api_key_when_safe(&existing, &mut unchanged).unwrap();
+        assert_eq!(unchanged.api_key, "secret");
+
+        let mut changed = unchanged;
+        changed.api_key.clear();
+        changed.base_url = "https://api.deepseek.com/v1".to_string();
+        assert_eq!(
+            preserve_api_key_when_safe(&existing, &mut changed).unwrap_err(),
+            "更换 API 地址时，请同时填写新的 API Key。"
+        );
     }
 
     #[test]
