@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ChatPanel } from "./ChatPanel";
@@ -17,7 +17,7 @@ const renderPanel = (props?: Partial<Parameters<typeof ChatPanel>[0]>) =>
       settingsReady
       isSending={false}
       error={null}
-      onSend={vi.fn()}
+      onSend={vi.fn(async () => {})}
       onOpenSettings={vi.fn()}
       onClearConversation={vi.fn()}
       onClose={vi.fn()}
@@ -54,7 +54,7 @@ describe("ChatPanel", () => {
   });
 
   it("sends a trimmed draft with Enter and keeps Shift Enter as a newline", async () => {
-    const onSend = vi.fn();
+    const onSend = vi.fn(async () => {});
     renderPanel({ onSend });
 
     const input = screen.getByLabelText("输入消息");
@@ -66,6 +66,48 @@ describe("ChatPanel", () => {
     await userEvent.type(input, "{enter}");
     expect(onSend).toHaveBeenCalledWith("第一行\n第二行");
     expect(input).toHaveValue("");
+  });
+
+  it("does not send Enter while an IME composition is active", async () => {
+    const onSend = vi.fn(async () => {});
+    renderPanel({ onSend });
+
+    const input = screen.getByLabelText("输入消息");
+    await userEvent.type(input, "输入中");
+    fireEvent.keyDown(input, {
+      key: "Enter",
+      isComposing: true,
+      keyCode: 229,
+    });
+
+    expect(onSend).not.toHaveBeenCalled();
+    expect(input).toHaveValue("输入中");
+  });
+
+  it("scrolls to the latest message on open and when messages are added", () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+
+    const { rerender } = renderPanel({ messages });
+    expect(scrollIntoView).toHaveBeenCalledOnce();
+
+    rerender(
+      <ChatPanel
+        messages={[
+          ...messages,
+          { id: "a2", role: "assistant", content: "当然记得。", createdAt: "4" },
+        ]}
+        settingsReady
+        isSending={false}
+        error={null}
+        onSend={vi.fn(async () => {})}
+        onOpenSettings={vi.fn()}
+        onClearConversation={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(scrollIntoView).toHaveBeenCalledTimes(2);
   });
 
   it("keeps the draft visible and prevents duplicate sends while an async send is pending", async () => {
@@ -122,14 +164,33 @@ describe("ChatPanel", () => {
   });
 
   it("shows parent-controlled sending state and disables duplicate sends", async () => {
-    const onSend = vi.fn();
-    renderPanel({ isSending: true, messages, onSend });
+    const onSend = vi.fn(async () => {});
+    const onOpenSettings = vi.fn();
+    const onClearConversation = vi.fn();
+    const onClose = vi.fn();
+    renderPanel({
+      isSending: true,
+      messages,
+      onSend,
+      onOpenSettings,
+      onClearConversation,
+      onClose,
+    });
 
     expect(screen.getByText("MiniShuya 正在想…")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "发送消息" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "设置" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "关闭聊天" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "清空对话" })).toBeDisabled();
 
     await userEvent.type(screen.getByLabelText("输入消息"), "重复发送{enter}");
+    await userEvent.click(screen.getByRole("button", { name: "设置" }));
+    await userEvent.click(screen.getByRole("button", { name: "关闭聊天" }));
+    await userEvent.click(screen.getByRole("button", { name: "清空对话" }));
     expect(onSend).not.toHaveBeenCalled();
+    expect(onOpenSettings).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onClearConversation).not.toHaveBeenCalled();
   });
 
   it("calls clear and close actions and disables clear when unavailable", async () => {
@@ -147,7 +208,7 @@ describe("ChatPanel", () => {
         settingsReady
         isSending={false}
         error={null}
-        onSend={vi.fn()}
+        onSend={vi.fn(async () => {})}
         onOpenSettings={vi.fn()}
         onClearConversation={onClearConversation}
         onClose={onClose}

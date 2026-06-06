@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { ChatMessage } from "./chatTypes";
 
 type ChatPanelProps = {
@@ -6,7 +6,7 @@ type ChatPanelProps = {
   settingsReady: boolean;
   isSending: boolean;
   error: string | null;
-  onSend: (content: string) => void | Promise<void>;
+  onSend: (content: string) => Promise<void>;
   onOpenSettings: () => void;
   onClearConversation: () => void;
   onClose: () => void;
@@ -24,8 +24,13 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const [draft, setDraft] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const messageEndRef = useRef<HTMLDivElement>(null);
   const sending = isSending || isSubmitting;
   const canSend = settingsReady && draft.trim().length > 0 && !sending;
+
+  useEffect(() => {
+    messageEndRef.current?.scrollIntoView?.({ block: "end" });
+  }, [messages.length]);
 
   const send = async () => {
     const content = draft.trim();
@@ -45,7 +50,12 @@ export function ChatPanel({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key !== "Enter" || event.shiftKey) {
+    if (
+      event.key !== "Enter" ||
+      event.shiftKey ||
+      event.nativeEvent.isComposing ||
+      event.keyCode === 229
+    ) {
       return;
     }
 
@@ -58,12 +68,18 @@ export function ChatPanel({
       <header className="panel-header">
         <h2>MiniShuya</h2>
         <div className="panel-header__actions">
-          <button type="button" className="ghost-button" onClick={onOpenSettings}>
+          <button
+            type="button"
+            className="ghost-button"
+            disabled={sending}
+            onClick={onOpenSettings}
+          >
             设置
           </button>
           <button
             type="button"
             className="icon-button"
+            disabled={sending}
             onClick={onClose}
             aria-label="关闭聊天"
           >
@@ -76,7 +92,12 @@ export function ChatPanel({
         <div className="empty-state">
           <strong>先连接一个模型</strong>
           <p>填写 API 地址、Key 和模型名称后，MiniShuya 就可以开始聊天。</p>
-          <button type="button" className="primary-button" onClick={onOpenSettings}>
+          <button
+            type="button"
+            className="primary-button"
+            disabled={sending}
+            onClick={onOpenSettings}
+          >
             打开设置
           </button>
         </div>
@@ -100,6 +121,7 @@ export function ChatPanel({
               {message.content}
             </article>
           ))}
+          <div ref={messageEndRef} aria-hidden="true" />
         </div>
       ) : null}
 
