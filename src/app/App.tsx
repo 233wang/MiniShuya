@@ -17,6 +17,7 @@ const emptyMemory: ChatMemory = {
   profile: "",
   summary: "",
   updatedAt: null,
+  summarizedThroughMessageId: null,
 };
 
 export function App() {

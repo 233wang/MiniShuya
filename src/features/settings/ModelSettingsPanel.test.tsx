@@ -17,6 +17,7 @@ const memory: ChatMemory = {
   profile: "用户喜欢简洁中文。",
   summary: "",
   updatedAt: null,
+  summarizedThroughMessageId: null,
 };
 
 const renderPanel = (
@@ -36,13 +37,15 @@ const renderPanel = (
 
 describe("ModelSettingsPanel", () => {
   it("renders provider settings without exposing the stored API key", () => {
-    renderPanel();
+    renderPanel({ memory: { ...memory, summary: "自动保存的旧对话摘要" } });
 
     expect(screen.getByLabelText("API 地址")).toHaveValue(settings.baseUrl);
     expect(screen.getByLabelText("API Key")).toHaveValue("");
     expect(screen.getByText("已配置，可留空保留")).toBeInTheDocument();
     expect(screen.getByLabelText("模型")).toHaveValue(settings.model);
     expect(screen.getByLabelText("用户记忆")).toHaveValue(memory.profile);
+    expect(screen.getByLabelText("对话摘要（自动维护）")).toHaveValue("自动保存的旧对话摘要");
+    expect(screen.getByLabelText("对话摘要（自动维护）")).toHaveAttribute("readonly");
   });
 
   it("validates required fields before save", async () => {
@@ -77,7 +80,12 @@ describe("ModelSettingsPanel", () => {
   it("syncs asynchronously loaded settings and memory into untouched drafts", () => {
     const { rerender } = renderPanel({
       settings: null,
-      memory: { profile: "", summary: "", updatedAt: null },
+      memory: {
+        profile: "",
+        summary: "",
+        updatedAt: null,
+        summarizedThroughMessageId: null,
+      },
     });
 
     rerender(
@@ -185,6 +193,7 @@ describe("ModelSettingsPanel", () => {
     await userEvent.click(screen.getByRole("checkbox", { name: "启用记忆" }));
 
     expect(screen.queryByLabelText("用户记忆")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("对话摘要（自动维护）")).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "保存设置" }));
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({ memoryEnabled: false }),

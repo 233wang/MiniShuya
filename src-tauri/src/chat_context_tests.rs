@@ -1,5 +1,6 @@
 use crate::chat_context::{
-    approximate_tokens, build_chat_completions_url, build_context_messages, SYSTEM_PROMPT,
+    approximate_tokens, build_chat_completions_url, build_context_messages, build_summary_messages,
+    messages_to_summarize, SYSTEM_PROMPT,
 };
 use crate::chat_storage::{ChatMemory, ChatMessage, ChatRole, ChatSettings, Conversation};
 
@@ -19,7 +20,74 @@ fn memory(profile: &str, summary: &str) -> ChatMemory {
         profile: profile.to_string(),
         summary: summary.to_string(),
         updated_at: None,
+        summarized_through_message_id: None,
     }
+}
+
+#[test]
+fn identifies_only_newly_excluded_messages_for_summary() {
+    let old_long = "旧消息很长".repeat(80);
+    let conversation = Conversation {
+        messages: vec![
+            message("01", ChatRole::User, &old_long),
+            message("02", ChatRole::Assistant, &old_long),
+            message("03", ChatRole::User, "最近问题"),
+            message("04", ChatRole::Assistant, "最近回答"),
+        ],
+    };
+    let mut memory = memory("", "已有摘要");
+
+    let first = messages_to_summarize(&settings(true, 90), &conversation, &memory, "当前问题");
+    assert_eq!(
+        first
+            .iter()
+            .map(|message| message.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["01"]
+    );
+
+    memory.summarized_through_message_id = Some("01".to_string());
+    assert_eq!(
+        messages_to_summarize(&settings(true, 90), &conversation, &memory, "当前问题")
+            .iter()
+            .map(|message| message.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["02"]
+    );
+
+    memory.summarized_through_message_id = Some("02".to_string());
+    assert!(
+        messages_to_summarize(&settings(true, 90), &conversation, &memory, "当前问题").is_empty()
+    );
+}
+
+#[test]
+fn builds_summary_request_with_existing_summary_and_old_messages() {
+    let messages = build_summary_messages(
+        &memory("", "用户正在开发桌宠"),
+        &[
+            message("01", ChatRole::User, "我偏好简洁回答"),
+            message("02", ChatRole::Assistant, "我会保持简洁"),
+        ],
+    );
+
+    assert_eq!(messages.first().unwrap().role, "system");
+    assert!(messages.last().unwrap().content.contains("已有摘要"));
+    assert!(messages
+        .last()
+        .unwrap()
+        .content
+        .contains("用户正在开发桌宠"));
+    assert!(messages
+        .last()
+        .unwrap()
+        .content
+        .contains("user: 我偏好简洁回答"));
+    assert!(messages
+        .last()
+        .unwrap()
+        .content
+        .contains("assistant: 我会保持简洁"));
 }
 
 fn message(id: &str, role: ChatRole, content: &str) -> ChatMessage {

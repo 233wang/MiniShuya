@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::AppHandle;
 
-use crate::chat_context::{build_chat_completions_url, build_context_messages, OpenAiMessage};
+use crate::chat_context::{
+    build_chat_completions_url, build_context_messages, build_summary_messages,
+    messages_to_summarize, OpenAiMessage,
+};
 use crate::chat_storage::{
     app_config_dir, default_chat_memory, load_chat_memory_from_dir, load_chat_settings_from_dir,
     load_conversation_from_dir, save_chat_memory_to_dir, save_chat_settings_to_dir,
@@ -238,11 +241,26 @@ pub async fn send_chat_message(app: AppHandle, content: String) -> Result<ChatSe
     let settings = load_chat_settings_from_dir(&dir)?;
     validate_chat_settings(&settings)?;
     let mut conversation = load_conversation_from_dir(&dir)?;
-    let memory = if settings.memory_enabled {
+    let mut memory = if settings.memory_enabled {
         load_chat_memory_from_dir(&dir)?
     } else {
         default_chat_memory()
     };
+    let older_messages = messages_to_summarize(&settings, &conversation, &memory, &user_content);
+    if let Some(last_summarized) = older_messages.last() {
+        if let Ok(summary) =
+            request_assistant_response(&settings, build_summary_messages(&memory, &older_messages))
+                .await
+        {
+            let mut updated_memory = memory.clone();
+            updated_memory.summary = summary;
+            updated_memory.updated_at = Some(now_millis_string());
+            updated_memory.summarized_through_message_id = Some(last_summarized.id.clone());
+            if save_chat_memory_to_dir(&dir, &updated_memory).is_ok() {
+                memory = updated_memory;
+            }
+        }
+    }
     let context_messages = build_context_messages(&settings, &conversation, &memory, &user_content);
 
     let user_message = new_message(ChatRole::User, user_content);

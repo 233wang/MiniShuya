@@ -226,21 +226,33 @@ export function ModelSettingsPanel({
         </label>
 
         {draft.memoryEnabled ? (
-          <label className="field">
-            <span>用户记忆</span>
-            <textarea
-              value={memoryDraft.profile}
-              rows={4}
-              disabled={isSaving}
-              onChange={(event) => {
-                memoryDirty.current = true;
-                setMemoryDraft((current) => ({
-                  ...current,
-                  profile: event.target.value,
-                }));
-              }}
-            />
-          </label>
+          <>
+            <label className="field">
+              <span>用户记忆</span>
+              <textarea
+                value={memoryDraft.profile}
+                rows={4}
+                disabled={isSaving}
+                onChange={(event) => {
+                  memoryDirty.current = true;
+                  setMemoryDraft((current) => ({
+                    ...current,
+                    profile: event.target.value,
+                  }));
+                }}
+              />
+            </label>
+            <label className="field">
+              <span>对话摘要（自动维护）</span>
+              <textarea
+                value={memoryDraft.summary}
+                rows={3}
+                readOnly
+                disabled={isSaving}
+                placeholder="长对话超出上下文窗口后，会在这里生成摘要。"
+              />
+            </label>
+          </>
         ) : null}
 
         {error ? (

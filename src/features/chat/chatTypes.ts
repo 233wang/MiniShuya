@@ -23,6 +23,7 @@ export type ChatMemory = {
   profile: string;
   summary: string;
   updatedAt: string | null;
+  summarizedThroughMessageId: string | null;
 };
 
 export type ChatSettingsFields = {

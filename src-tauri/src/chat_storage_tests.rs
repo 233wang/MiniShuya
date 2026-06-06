@@ -84,11 +84,28 @@ fn saves_and_loads_memory() {
         profile: "用户喜欢简洁回答。".to_string(),
         summary: "用户正在开发 MiniShuya。".to_string(),
         updated_at: Some("2026-06-05T10:00:00Z".to_string()),
+        summarized_through_message_id: Some("a1".to_string()),
     };
 
     save_chat_memory_to_dir(&dir, &memory).unwrap();
 
     assert_eq!(load_chat_memory_from_dir(&dir).unwrap(), memory);
+}
+
+#[test]
+fn loads_legacy_memory_without_summary_progress() {
+    let dir = unique_temp_dir("legacy-memory");
+    std::fs::write(
+        dir.join("chat-memory.json"),
+        r#"{"profile":"简洁回答","summary":"旧摘要","updatedAt":null}"#,
+    )
+    .unwrap();
+
+    let memory = load_chat_memory_from_dir(&dir).unwrap();
+
+    assert_eq!(memory.profile, "简洁回答");
+    assert_eq!(memory.summary, "旧摘要");
+    assert_eq!(memory.summarized_through_message_id, None);
 }
 
 #[test]
@@ -130,6 +147,7 @@ fn save_writes_pretty_json() {
         profile: "用户喜欢简洁回答。".to_string(),
         summary: "用户正在开发 MiniShuya。".to_string(),
         updated_at: Some("2026-06-05T10:00:00Z".to_string()),
+        summarized_through_message_id: None,
     };
 
     save_chat_memory_to_dir(&dir, &memory).unwrap();

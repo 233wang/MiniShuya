@@ -24,6 +24,8 @@ pub struct ChatMemory {
     pub profile: String,
     pub summary: String,
     pub updated_at: Option<String>,
+    #[serde(default)]
+    pub summarized_through_message_id: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -64,6 +66,7 @@ pub fn default_chat_memory() -> ChatMemory {
         profile: String::new(),
         summary: String::new(),
         updated_at: None,
+        summarized_through_message_id: None,
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::chat_storage::{ChatMemory, ChatRole, ChatSettings, Conversation};
+use crate::chat_storage::{ChatMemory, ChatMessage, ChatRole, ChatSettings, Conversation};
 use serde::{Deserialize, Serialize};
 
 pub const OPENAI_COMPATIBLE_PATH: &str = "/chat/completions";
@@ -38,29 +38,12 @@ pub fn build_context_messages(
     current_user_message: &str,
 ) -> Vec<OpenAiMessage> {
     let system_content = build_system_content(settings, memory);
-    let system_tokens = approximate_tokens(&system_content);
-    let current_tokens = approximate_tokens(current_user_message);
-    let budget = settings.max_context_tokens.saturating_mul(85) / 100;
-    let reserved = system_tokens
-        .saturating_add(current_tokens)
-        .saturating_add(16);
-    let recent_budget = budget.saturating_sub(reserved);
-
-    let mut recent_messages = Vec::new();
-    let mut used_recent_tokens = 0usize;
-    for message in conversation.messages.iter().rev() {
-        let token_count = approximate_tokens(&message.content) + 4;
-        if used_recent_tokens.saturating_add(token_count) > recent_budget {
-            continue;
-        }
-
-        recent_messages.push(OpenAiMessage {
-            role: role_name(message.role).to_string(),
-            content: message.content.clone(),
-        });
-        used_recent_tokens += token_count;
-    }
-    recent_messages.reverse();
+    let recent_messages = select_recent_messages(
+        settings,
+        conversation,
+        &system_content,
+        current_user_message,
+    );
 
     let mut messages = Vec::with_capacity(recent_messages.len() + 2);
     messages.push(OpenAiMessage {
@@ -73,6 +56,111 @@ pub fn build_context_messages(
         content: current_user_message.to_string(),
     });
     messages
+}
+
+pub fn messages_to_summarize(
+    settings: &ChatSettings,
+    conversation: &Conversation,
+    memory: &ChatMemory,
+    current_user_message: &str,
+) -> Vec<ChatMessage> {
+    if !settings.memory_enabled {
+        return Vec::new();
+    }
+
+    let system_content = build_system_content(settings, memory);
+    let recent = select_recent_messages(
+        settings,
+        conversation,
+        &system_content,
+        current_user_message,
+    );
+    let summary_end = conversation.messages.len().saturating_sub(recent.len());
+    let start = memory
+        .summarized_through_message_id
+        .as_deref()
+        .and_then(|id| {
+            conversation
+                .messages
+                .iter()
+                .position(|message| message.id == id)
+        })
+        .map_or(0, |index| index + 1);
+    if start >= summary_end {
+        return Vec::new();
+    }
+
+    let summary_budget = settings.max_context_tokens.saturating_mul(50) / 100;
+    let mut selected = Vec::new();
+    let mut used = 0usize;
+    for message in &conversation.messages[start..summary_end] {
+        let message_tokens = approximate_tokens(&message.content) + 4;
+        if !selected.is_empty() && used.saturating_add(message_tokens) > summary_budget {
+            break;
+        }
+        selected.push(message.clone());
+        used = used.saturating_add(message_tokens);
+    }
+    selected
+}
+
+pub fn build_summary_messages(memory: &ChatMemory, messages: &[ChatMessage]) -> Vec<OpenAiMessage> {
+    let mut prompt = String::from(
+        "请把下面较早的对话整理成一段简洁、准确的中文摘要，保留用户目标、偏好、重要事实和未完成事项。不要添加对话中没有的信息。",
+    );
+    if !memory.summary.trim().is_empty() {
+        prompt.push_str("\n\n已有摘要:\n");
+        prompt.push_str(memory.summary.trim());
+    }
+    prompt.push_str("\n\n需要合并的旧对话:\n");
+    for message in messages {
+        prompt.push_str(role_name(message.role));
+        prompt.push_str(": ");
+        prompt.push_str(message.content.trim());
+        prompt.push('\n');
+    }
+
+    vec![
+        OpenAiMessage {
+            role: "system".to_string(),
+            content: "你负责维护 MiniShuya 的长期对话摘要。只输出更新后的摘要正文。".to_string(),
+        },
+        OpenAiMessage {
+            role: "user".to_string(),
+            content: prompt,
+        },
+    ]
+}
+
+fn select_recent_messages(
+    settings: &ChatSettings,
+    conversation: &Conversation,
+    system_content: &str,
+    current_user_message: &str,
+) -> Vec<OpenAiMessage> {
+    let system_tokens = approximate_tokens(system_content);
+    let current_tokens = approximate_tokens(current_user_message);
+    let budget = settings.max_context_tokens.saturating_mul(85) / 100;
+    let reserved = system_tokens
+        .saturating_add(current_tokens)
+        .saturating_add(16);
+    let recent_budget = budget.saturating_sub(reserved);
+    let mut recent_messages = Vec::new();
+    let mut used_recent_tokens = 0usize;
+
+    for message in conversation.messages.iter().rev() {
+        let token_count = approximate_tokens(&message.content) + 4;
+        if used_recent_tokens.saturating_add(token_count) > recent_budget {
+            break;
+        }
+        recent_messages.push(OpenAiMessage {
+            role: role_name(message.role).to_string(),
+            content: message.content.clone(),
+        });
+        used_recent_tokens += token_count;
+    }
+    recent_messages.reverse();
+    recent_messages
 }
 
 fn build_system_content(settings: &ChatSettings, memory: &ChatMemory) -> String {
