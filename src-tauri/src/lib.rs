@@ -1,6 +1,7 @@
 use tauri::Manager;
 
 mod character_alpha_mask;
+mod chat;
 mod chat_context;
 mod chat_storage;
 mod hit_test;
@@ -21,6 +22,13 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
+            chat::clear_conversation,
+            chat::load_chat_memory,
+            chat::load_chat_settings,
+            chat::load_conversation,
+            chat::save_chat_memory,
+            chat::save_chat_settings,
+            chat::send_chat_message,
             window::exit_app,
             window::is_primary_mouse_down,
             window::load_window_position,
