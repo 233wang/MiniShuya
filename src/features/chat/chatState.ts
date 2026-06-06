@@ -1,9 +1,11 @@
 import type {
+  AssistantChatMessage,
   ChatMessage,
   ChatSettings,
   ChatSettingsDraft,
   ChatSettingsErrors,
   ChatSettingsView,
+  UserChatMessage,
 } from "./chatTypes";
 
 type ReadySettings = ChatSettings | ChatSettingsView | ChatSettingsDraft;
@@ -23,6 +25,7 @@ export function settingsDraftFromView(settings: ChatSettingsView): ChatSettingsD
   return {
     ...settings,
     apiKey: "",
+    configuredApiKeyBaseUrl: settings.apiKeyConfigured ? settings.baseUrl : null,
   };
 }
 
@@ -38,16 +41,14 @@ export function chatSettingsFromDraft(settings: ChatSettingsDraft): ChatSettings
 }
 
 export function settingsReady(settings: ReadySettings): boolean {
-  const apiKeyReady =
-    ("apiKey" in settings && settings.apiKey.trim().length > 0) ||
-    ("apiKeyConfigured" in settings && settings.apiKeyConfigured);
-
   return (
     settings.baseUrl.trim().length > 0 &&
-    apiKeyReady &&
+    apiKeyReady(settings) &&
     settings.model.trim().length > 0 &&
+    Number.isFinite(settings.temperature) &&
     settings.temperature >= 0 &&
     settings.temperature <= 2 &&
+    Number.isFinite(settings.maxContextTokens) &&
     settings.maxContextTokens > 0
   );
 }
@@ -59,10 +60,7 @@ export function validateSettingsDraft(
   if (!settings.baseUrl.trim()) {
     errors.baseUrl = "请输入 API 地址";
   }
-  if (
-    !settings.apiKey.trim() &&
-    !("apiKeyConfigured" in settings && settings.apiKeyConfigured)
-  ) {
+  if (!apiKeyReady(settings)) {
     errors.apiKey = "请输入 API Key";
   }
   if (!settings.model.trim()) {
@@ -83,14 +81,33 @@ export function validateSettingsDraft(
 
 export function appendUserMessage(
   messages: ChatMessage[],
-  message: ChatMessage,
+  message: UserChatMessage,
 ): ChatMessage[] {
   return [...messages, message];
 }
 
 export function appendAssistantMessage(
   messages: ChatMessage[],
-  message: ChatMessage,
+  message: AssistantChatMessage,
 ): ChatMessage[] {
   return [...messages, message];
+}
+
+function apiKeyReady(settings: ReadySettings): boolean {
+  if ("apiKey" in settings && settings.apiKey.trim().length > 0) {
+    return true;
+  }
+
+  if (!("apiKeyConfigured" in settings) || !settings.apiKeyConfigured) {
+    return false;
+  }
+
+  if ("configuredApiKeyBaseUrl" in settings) {
+    return (
+      settings.configuredApiKeyBaseUrl !== null &&
+      settings.configuredApiKeyBaseUrl.trim() === settings.baseUrl.trim()
+    );
+  }
+
+  return true;
 }

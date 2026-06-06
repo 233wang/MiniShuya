@@ -55,17 +55,40 @@ describe("chatState", () => {
     expect(settingsReady({ ...baseSettings, apiKey: "  " })).toBe(false);
   });
 
+  it("rejects non-finite numeric settings as not ready", () => {
+    expect(settingsReady({ ...baseSettings, temperature: Number.NaN })).toBe(false);
+    expect(settingsReady({ ...baseSettings, maxContextTokens: Number.POSITIVE_INFINITY })).toBe(
+      false,
+    );
+  });
+
   it("creates an editable draft without exposing the stored API key", () => {
     expect(settingsDraftFromView(configuredSettingsView)).toEqual({
       ...configuredSettingsView,
       apiKey: "",
+      configuredApiKeyBaseUrl: configuredSettingsView.baseUrl,
     });
   });
 
   it("allows a blank draft API key when a stored key is configured", () => {
     const draft = settingsDraftFromView(configuredSettingsView);
 
+    expect(settingsReady(draft)).toBe(true);
     expect(validateSettingsDraft(draft)).toEqual({});
+  });
+
+  it("requires a new API key when the draft base URL changes", () => {
+    const draft = {
+      ...settingsDraftFromView(configuredSettingsView),
+      baseUrl: "https://api.openai.com/v1",
+    };
+
+    expect(settingsReady(draft)).toBe(false);
+    expect(validateSettingsDraft(draft)).toEqual({
+      apiKey: "请输入 API Key",
+    });
+    expect(settingsReady({ ...draft, apiKey: "new-secret" })).toBe(true);
+    expect(validateSettingsDraft({ ...draft, apiKey: "new-secret" })).toEqual({});
   });
 
   it("validates required settings fields including an unconfigured API key", () => {

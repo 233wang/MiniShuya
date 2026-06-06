@@ -7,6 +7,14 @@ export type ChatMessage = {
   createdAt: string;
 };
 
+export type UserChatMessage = ChatMessage & {
+  role: "user";
+};
+
+export type AssistantChatMessage = ChatMessage & {
+  role: "assistant";
+};
+
 export type Conversation = {
   messages: ChatMessage[];
 };
@@ -35,6 +43,7 @@ export type ChatSettingsView = ChatSettingsFields & {
 
 export type ChatSettingsDraft = ChatSettings & {
   apiKeyConfigured: boolean;
+  configuredApiKeyBaseUrl: string | null;
 };
 
 export type ChatSettingsErrors = Partial<Record<keyof ChatSettings, string>>;
