@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::AppHandle;
 
 use crate::chat_context::{build_chat_completions_url, build_context_messages, OpenAiMessage};
@@ -11,6 +12,25 @@ use crate::chat_storage::{
 const REQUEST_TIMEOUT_SECONDS: u64 = 60;
 const MISSING_SETTINGS_ERROR: &str = "请先在设置里填写 API 地址、Key 和模型名称。";
 const INVALID_RESPONSE_ERROR: &str = "没有读取到模型回复，请检查模型接口是否兼容。";
+static SEND_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
+
+#[derive(Debug)]
+struct SendGuard;
+
+impl SendGuard {
+    fn acquire() -> Result<Self, String> {
+        SEND_IN_PROGRESS
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .map(|_| Self)
+            .map_err(|_| "已有消息正在发送，请稍后再试。".to_string())
+    }
+}
+
+impl Drop for SendGuard {
+    fn drop(&mut self) {
+        SEND_IN_PROGRESS.store(false, Ordering::Release);
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -19,6 +39,30 @@ pub struct ChatSendResult {
     pub assistant_message: ChatMessage,
     pub conversation: Conversation,
     pub memory: ChatMemory,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatSettingsView {
+    pub base_url: String,
+    pub model: String,
+    pub temperature: f32,
+    pub max_context_tokens: usize,
+    pub memory_enabled: bool,
+    pub api_key_configured: bool,
+}
+
+impl From<&ChatSettings> for ChatSettingsView {
+    fn from(settings: &ChatSettings) -> Self {
+        Self {
+            base_url: settings.base_url.clone(),
+            model: settings.model.clone(),
+            temperature: settings.temperature,
+            max_context_tokens: settings.max_context_tokens,
+            memory_enabled: settings.memory_enabled,
+            api_key_configured: !settings.api_key.trim().is_empty(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -51,7 +95,21 @@ pub fn validate_chat_settings(settings: &ChatSettings) -> Result<(), String> {
         return Err(MISSING_SETTINGS_ERROR.to_string());
     }
 
+    validate_base_url_security(&settings.base_url)?;
     validate_chat_settings_for_save(settings)
+}
+
+fn validate_base_url_security(base_url: &str) -> Result<(), String> {
+    let url = reqwest::Url::parse(base_url.trim())
+        .map_err(|_| "API 地址格式无效，请检查后重试。".to_string())?;
+    let host = url.host_str().unwrap_or_default();
+    let is_loopback =
+        host.eq_ignore_ascii_case("localhost") || host == "127.0.0.1" || host == "::1";
+    if url.scheme() != "https" && !is_loopback {
+        return Err("远程 API 地址必须使用 HTTPS；本机服务可以使用 HTTP。".to_string());
+    }
+
+    Ok(())
 }
 
 fn validate_chat_settings_for_save(settings: &ChatSettings) -> Result<(), String> {
@@ -105,15 +163,26 @@ fn new_message(role: ChatRole, content: String) -> ChatMessage {
     }
 }
 
-#[tauri::command]
-pub fn load_chat_settings(app: AppHandle) -> Result<ChatSettings, String> {
-    load_chat_settings_from_dir(&app_config_dir(&app)?)
+fn remove_message_by_id(conversation: &mut Conversation, message_id: &str) {
+    conversation
+        .messages
+        .retain(|message| message.id != message_id);
 }
 
 #[tauri::command]
-pub fn save_chat_settings(app: AppHandle, settings: ChatSettings) -> Result<(), String> {
+pub fn load_chat_settings(app: AppHandle) -> Result<ChatSettingsView, String> {
+    let settings = load_chat_settings_from_dir(&app_config_dir(&app)?)?;
+    Ok(ChatSettingsView::from(&settings))
+}
+
+#[tauri::command]
+pub fn save_chat_settings(app: AppHandle, mut settings: ChatSettings) -> Result<(), String> {
     validate_chat_settings_for_save(&settings)?;
-    save_chat_settings_to_dir(&app_config_dir(&app)?, &settings)
+    let dir = app_config_dir(&app)?;
+    if settings.api_key.trim().is_empty() {
+        settings.api_key = load_chat_settings_from_dir(&dir)?.api_key;
+    }
+    save_chat_settings_to_dir(&dir, &settings)
 }
 
 #[tauri::command]
@@ -143,6 +212,7 @@ pub fn save_chat_memory(app: AppHandle, memory: ChatMemory) -> Result<(), String
 
 #[tauri::command]
 pub async fn send_chat_message(app: AppHandle, content: String) -> Result<ChatSendResult, String> {
+    let _send_guard = SendGuard::acquire()?;
     let user_content = content.trim().to_string();
     if user_content.is_empty() {
         return Err("请输入消息内容。".to_string());
@@ -163,6 +233,31 @@ pub async fn send_chat_message(app: AppHandle, content: String) -> Result<ChatSe
     conversation.messages.push(user_message.clone());
     save_conversation_to_dir(&dir, &conversation)?;
 
+    let assistant_content = request_assistant_response(&settings, context_messages)
+        .await
+        .map_err(|error| {
+            remove_message_by_id(&mut conversation, &user_message.id);
+            match save_conversation_to_dir(&dir, &conversation) {
+                Ok(()) => error,
+                Err(save_error) => format!("{error}；同时无法回滚会话：{save_error}"),
+            }
+        })?;
+    let assistant_message = new_message(ChatRole::Assistant, assistant_content);
+    conversation.messages.push(assistant_message.clone());
+    save_conversation_to_dir(&dir, &conversation)?;
+
+    Ok(ChatSendResult {
+        user_message,
+        assistant_message,
+        conversation,
+        memory,
+    })
+}
+
+async fn request_assistant_response(
+    settings: &ChatSettings,
+    context_messages: Vec<OpenAiMessage>,
+) -> Result<String, String> {
     let request = OpenAiChatRequest {
         model: settings.model.clone(),
         messages: context_messages,
@@ -195,16 +290,7 @@ pub async fn send_chat_message(app: AppHandle, content: String) -> Result<ChatSe
         return Err(provider_status_error(status));
     }
 
-    let assistant_message = new_message(ChatRole::Assistant, parse_openai_response(&body)?);
-    conversation.messages.push(assistant_message.clone());
-    save_conversation_to_dir(&dir, &conversation)?;
-
-    Ok(ChatSendResult {
-        user_message,
-        assistant_message,
-        conversation,
-        memory,
-    })
+    parse_openai_response(&body)
 }
 
 #[cfg(test)]
@@ -212,9 +298,11 @@ mod tests {
     use crate::chat_storage::ChatSettings;
 
     use super::{
-        parse_openai_response, provider_status_error, validate_chat_settings,
-        validate_chat_settings_for_save,
+        parse_openai_response, provider_status_error, remove_message_by_id,
+        validate_base_url_security, validate_chat_settings, validate_chat_settings_for_save,
+        ChatSettingsView, SendGuard,
     };
+    use crate::chat_storage::{ChatMessage, ChatRole, Conversation};
 
     fn settings() -> ChatSettings {
         ChatSettings {
@@ -297,6 +385,63 @@ mod tests {
             provider_status_error(reqwest::StatusCode::UNAUTHORIZED),
             "服务返回错误：401 Unauthorized，请检查 API Key、API 地址和模型名称。"
         );
+    }
+
+    #[test]
+    fn rejects_remote_plain_http_but_allows_loopback_http() {
+        assert_eq!(
+            validate_base_url_security("http://example.com/v1").unwrap_err(),
+            "远程 API 地址必须使用 HTTPS；本机服务可以使用 HTTP。"
+        );
+        assert!(validate_base_url_security("http://127.0.0.1:11434/v1").is_ok());
+        assert!(validate_base_url_security("http://localhost:11434/v1").is_ok());
+        assert!(validate_base_url_security("https://api.deepseek.com/v1").is_ok());
+    }
+
+    #[test]
+    fn settings_view_does_not_expose_api_key() {
+        let view = ChatSettingsView::from(&settings());
+        let json = serde_json::to_string(&view).unwrap();
+
+        assert!(view.api_key_configured);
+        assert!(!json.contains("secret"));
+        assert!(!json.contains("apiKey\""));
+    }
+
+    #[test]
+    fn send_guard_rejects_concurrent_send() {
+        let first = SendGuard::acquire().unwrap();
+        assert_eq!(
+            SendGuard::acquire().unwrap_err(),
+            "已有消息正在发送，请稍后再试。"
+        );
+        drop(first);
+        assert!(SendGuard::acquire().is_ok());
+    }
+
+    #[test]
+    fn removes_failed_user_message_from_conversation() {
+        let mut conversation = Conversation {
+            messages: vec![
+                ChatMessage {
+                    id: "keep".to_string(),
+                    role: ChatRole::Assistant,
+                    content: "已有回复".to_string(),
+                    created_at: "1".to_string(),
+                },
+                ChatMessage {
+                    id: "remove".to_string(),
+                    role: ChatRole::User,
+                    content: "失败消息".to_string(),
+                    created_at: "2".to_string(),
+                },
+            ],
+        };
+
+        remove_message_by_id(&mut conversation, "remove");
+
+        assert_eq!(conversation.messages.len(), 1);
+        assert_eq!(conversation.messages[0].id, "keep");
     }
 
     #[test]
